@@ -7,13 +7,13 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Search, Phone, Clock, CheckCircle2, User, AlertCircle } from "lucide-react"
+import { Search, Phone, Clock, CheckCircle2, User, AlertCircle, ChevronDown, ChevronUp, MessageSquare } from "lucide-react"
 import { dashboardAPI } from "@/lib/api-client"
 
 export default function SummaryPage() {
   const [phoneNumber, setPhoneNumber] = useState("")
   const [responseData, setResponseData] = useState(null)
-  const [selectedSession, setSelectedSession] = useState(null)
+  const [expandedSessionId, setExpandedSessionId] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
 
@@ -26,17 +26,16 @@ export default function SummaryPage() {
     setLoading(true)
     setError(null)
     setResponseData(null)
-    setSelectedSession(null)
+    setExpandedSessionId(null)
 
     try {
-      // Fetch conversation using mobile number as session ID
       const data = await dashboardAPI.getConversation(phoneNumber)
       console.log("API Response:", data)
 
       if (data && data.conversations && data.conversations.length > 0) {
         setResponseData(data)
-        // Automatically select the first (most recent) conversation
-        setSelectedSession(data.conversations[0])
+        // Automatically expand the first conversation
+        setExpandedSessionId(data.conversations[0].session_id)
       } else {
         setError("No conversations found for this phone number")
       }
@@ -45,6 +44,10 @@ export default function SummaryPage() {
     } finally {
       setLoading(false)
     }
+  }
+
+  const toggleSession = (sessionId) => {
+    setExpandedSessionId(expandedSessionId === sessionId ? null : sessionId)
   }
 
   const parseSummary = (summaryString) => {
@@ -56,6 +59,26 @@ export default function SummaryPage() {
     }
   }
 
+  const formatActionItem = (item) => {
+    if (typeof item === "string") return item
+    if (typeof item === "object" && item.who && item.what) {
+      return `${item.who}: ${item.what}`
+    }
+    return JSON.stringify(item)
+  }
+
+  const formatIntent = (intent) => {
+    if (!intent) return "N/A"
+
+    // Extract text from parentheses if it exists
+    const match = intent.match(/\(([^)]+)\)/)
+    if (match) {
+      return match[1] // Return the text inside parentheses
+    }
+
+    return intent
+  }
+
   const formatDate = (dateString) => {
     if (!dateString) return "N/A"
     return new Date(dateString).toLocaleString("en-US", {
@@ -65,6 +88,235 @@ export default function SummaryPage() {
       hour: "2-digit",
       minute: "2-digit",
     })
+  }
+
+  const renderSummaryValue = (key, value) => {
+    // Special handling for action_items
+    if (key === "action_items") {
+      if (!Array.isArray(value) || value.length === 0) {
+        return <p className="text-sm text-muted-foreground">No action items</p>
+      }
+      return (
+        <ul className="list-disc list-inside space-y-1">
+          {value.map((item, idx) => (
+            <li key={idx} className="text-sm text-muted-foreground">
+              {formatActionItem(item)}
+            </li>
+          ))}
+        </ul>
+      )
+    }
+
+    // Special handling for intent
+    if (key === "intent") {
+      return <p className="text-sm text-muted-foreground">{formatIntent(value)}</p>
+    }
+
+    // Default handling for other fields
+    if (Array.isArray(value)) {
+      if (value.length === 0) {
+        return <p className="text-sm text-muted-foreground">None</p>
+      }
+      return (
+        <ul className="list-disc list-inside space-y-1">
+          {value.map((item, idx) => (
+            <li key={idx} className="text-sm text-muted-foreground">
+              {typeof item === "object" ? JSON.stringify(item) : item}
+            </li>
+          ))}
+        </ul>
+      )
+    }
+
+    if (typeof value === "object" && value !== null) {
+      return (
+        <div className="pl-4 space-y-2">
+          {Object.entries(value).map(([subKey, subValue]) => (
+            <div key={subKey}>
+              <span className="text-sm font-medium">{subKey}: </span>
+              <span className="text-sm text-muted-foreground">{String(subValue)}</span>
+            </div>
+          ))}
+        </div>
+      )
+    }
+
+    return <p className="text-sm text-muted-foreground">{String(value)}</p>
+  }
+
+  const renderSessionDetails = (session) => {
+    return (
+      <div className="space-y-6 px-4 pb-4 pt-2">
+        {/* Session Info Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <Phone className="w-5 h-5 text-primary" />
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Phone Number</p>
+                  <p className="text-sm font-semibold">{session.mobile_number}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-chart-2/20 flex items-center justify-center">
+                  <Clock className="w-5 h-5 text-chart-2" />
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Started At</p>
+                  <p className="text-sm font-semibold">{formatDate(session.created_at)}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-success/20 flex items-center justify-center">
+                  <CheckCircle2 className="w-5 h-5 text-success" />
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Status</p>
+                  <p className="text-sm font-semibold capitalize">{session.status || "completed"}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-chart-4/20 flex items-center justify-center">
+                  <User className="w-5 h-5 text-chart-4" />
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Session ID</p>
+                  <p className="text-xs font-mono">{session.session_id?.slice(0, 13) || "N/A"}...</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Tabbed Content */}
+        <Card>
+          <Tabs defaultValue="conversation" className="w-full">
+            <CardHeader className="pb-4">
+              <TabsList className="grid w-full max-w-md grid-cols-3">
+                <TabsTrigger value="conversation">Conversation</TabsTrigger>
+                <TabsTrigger value="summary">Summary</TabsTrigger>
+                <TabsTrigger value="metadata">Metadata</TabsTrigger>
+              </TabsList>
+            </CardHeader>
+
+            <CardContent>
+              <TabsContent value="conversation" className="mt-0">
+                <div className="space-y-4 max-h-[600px] overflow-y-auto">
+                  {session.conversation && session.conversation.length > 0 ? (
+                    session.conversation.map((msg, index) => {
+                      const isAgent = "assistant" in msg
+                      const message = isAgent ? msg.assistant : msg.user
+                      const role = isAgent ? "agent" : "user"
+
+                      return (
+                        <div key={index} className={`flex ${role === "agent" ? "justify-start" : "justify-end"}`}>
+                          <div
+                            className={`max-w-[70%] rounded-lg p-4 ${role === "agent"
+                              ? "bg-card border border-border"
+                              : "bg-primary text-primary-foreground"
+                              }`}
+                          >
+                            <div className="flex items-center gap-2 mb-2">
+                              <span className="text-xs font-semibold">
+                                {role === "agent" ? "AI Agent" : "Customer"}
+                              </span>
+                              <span className="text-xs opacity-70">{formatDate(msg.timestamp)}</span>
+                            </div>
+                            <p className="text-sm leading-relaxed">{message}</p>
+                          </div>
+                        </div>
+                      )
+                    })
+                  ) : (
+                    <p className="text-sm text-muted-foreground text-center py-8">
+                      No conversation data available
+                    </p>
+                  )}
+                </div>
+              </TabsContent>
+
+              <TabsContent value="summary" className="mt-0">
+                <div className="space-y-4 max-h-[600px] overflow-y-auto">
+                  {session.summary ? (
+                    Object.entries(parseSummary(session.summary)).map(([key, value]) => (
+                      <div key={key} className="border-b border-border pb-4 last:border-0">
+                        <p className="text-sm font-semibold text-foreground mb-2 capitalize">
+                          {key.replace(/_/g, " ")}
+                        </p>
+                        {renderSummaryValue(key, value)}
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-sm text-muted-foreground text-center py-8">No summary available</p>
+                  )}
+                </div>
+              </TabsContent>
+
+              <TabsContent value="metadata" className="mt-0">
+                <div className="space-y-4 max-h-[600px] overflow-y-auto">
+                  {session.metadata && (
+                    <>
+                      <div className="border-b border-border pb-4">
+                        <p className="text-sm font-semibold text-foreground mb-2">Call SID</p>
+                        <p className="text-sm text-muted-foreground font-mono">
+                          {session.metadata.call_sid || "N/A"}
+                        </p>
+                      </div>
+                      <div className="border-b border-border pb-4">
+                        <p className="text-sm font-semibold text-foreground mb-2">From</p>
+                        <p className="text-sm text-muted-foreground">{session.metadata.from || "N/A"}</p>
+                      </div>
+                      <div className="border-b border-border pb-4">
+                        <p className="text-sm font-semibold text-foreground mb-2">To</p>
+                        <p className="text-sm text-muted-foreground">{session.metadata.to || "N/A"}</p>
+                      </div>
+                    </>
+                  )}
+                  {session.summary_generated_at && (
+                    <div className="border-b border-border pb-4">
+                      <p className="text-sm font-semibold text-foreground mb-2">Summary Generated At</p>
+                      <p className="text-sm text-muted-foreground">
+                        {formatDate(session.summary_generated_at)}
+                      </p>
+                    </div>
+                  )}
+                  {session.ended_at && (
+                    <div className="border-b border-border pb-4">
+                      <p className="text-sm font-semibold text-foreground mb-2">Ended At</p>
+                      <p className="text-sm text-muted-foreground">{formatDate(session.ended_at)}</p>
+                    </div>
+                  )}
+                  {session.last_updated && (
+                    <div>
+                      <p className="text-sm font-semibold text-foreground mb-2">Last Updated</p>
+                      <p className="text-sm text-muted-foreground">{formatDate(session.last_updated)}</p>
+                    </div>
+                  )}
+                </div>
+              </TabsContent>
+            </CardContent>
+          </Tabs>
+        </Card>
+      </div>
+    )
   }
 
   return (
@@ -107,242 +359,75 @@ export default function SummaryPage() {
             </CardContent>
           </Card>
 
-          {responseData && responseData.conversations && (
-            <div className="space-y-6">
-              {/* Conversation List - Show if multiple conversations exist */}
-              {responseData.conversations.length > 1 && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Conversations ({responseData.total})</CardTitle>
-                    <CardDescription>Select a conversation to view details</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-2">
-                      {responseData.conversations.map((conv, index) => (
+          {responseData && responseData.conversations && responseData.conversations.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Call History ({responseData.total})</CardTitle>
+                <CardDescription>Click on any call to view details</CardDescription>
+              </CardHeader>
+              <CardContent className="p-0">
+                <div className="divide-y divide-border">
+                  {responseData.conversations.map((conv, index) => {
+                    const isExpanded = expandedSessionId === conv.session_id
+
+                    return (
+                      <div key={conv.session_id} className="transition-all duration-200">
+                        {/* Call Item Header - Clickable */}
                         <button
-                          key={conv.session_id}
-                          onClick={() => setSelectedSession(conv)}
-                          className={`w-full text-left p-4 rounded-lg border transition-colors ${selectedSession?.session_id === conv.session_id
-                            ? "border-primary bg-primary/5"
-                            : "border-border hover:border-primary/50"
-                            }`}
+                          onClick={() => toggleSession(conv.session_id)}
+                          className="w-full p-4 hover:bg-muted/50 transition-colors text-left"
                         >
                           <div className="flex items-center justify-between">
-                            <div>
-                              <p className="font-semibold text-sm">
-                                Call #{responseData.conversations.length - index}
-                              </p>
-                              <p className="text-xs text-muted-foreground">
-                                {formatDate(conv.created_at)}
-                              </p>
+                            <div className="flex items-center gap-4 flex-1">
+                              <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${isExpanded ? "bg-primary text-primary-foreground" : "bg-primary/10 text-primary"
+                                }`}>
+                                <MessageSquare className="w-5 h-5" />
+                              </div>
+
+                              <div className="flex-1">
+                                <div className="flex items-center gap-3 mb-1">
+                                  <p className="font-semibold text-sm">
+                                    Call #{responseData.conversations.length - index}
+                                  </p>
+                                  <span className="text-xs px-2 py-0.5 rounded-full bg-success/20 text-success capitalize">
+                                    {conv.status}
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                                  <span className="flex items-center gap-1">
+                                    <Clock className="w-3 h-3" />
+                                    {formatDate(conv.created_at)}
+                                  </span>
+                                  <span className="flex items-center gap-1">
+                                    <MessageSquare className="w-3 h-3" />
+                                    {conv.conversation?.length || 0} messages
+                                  </span>
+                                </div>
+                              </div>
                             </div>
-                            <div className="text-right">
-                              <p className="text-xs text-muted-foreground">
-                                {conv.conversation?.length || 0} messages
-                              </p>
-                              <p className="text-xs text-success capitalize">{conv.status}</p>
+
+                            <div className="ml-4">
+                              {isExpanded ? (
+                                <ChevronUp className="w-5 h-5 text-muted-foreground" />
+                              ) : (
+                                <ChevronDown className="w-5 h-5 text-muted-foreground" />
+                              )}
                             </div>
                           </div>
                         </button>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
 
-              {/* Selected Conversation Details */}
-              {selectedSession && (
-                <>
-                  {/* Session Info */}
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <Card>
-                      <CardContent className="p-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                            <Phone className="w-5 h-5 text-primary" />
+                        {/* Expandable Details */}
+                        {isExpanded && (
+                          <div className="border-t border-border bg-muted/30 animate-in slide-in-from-top-2 duration-300">
+                            {renderSessionDetails(conv)}
                           </div>
-                          <div>
-                            <p className="text-xs text-muted-foreground">Phone Number</p>
-                            <p className="text-sm font-semibold">{selectedSession.mobile_number}</p>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-
-                    <Card>
-                      <CardContent className="p-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-lg bg-chart-2/20 flex items-center justify-center">
-                            <Clock className="w-5 h-5 text-chart-2" />
-                          </div>
-                          <div>
-                            <p className="text-xs text-muted-foreground">Started At</p>
-                            <p className="text-sm font-semibold">{formatDate(selectedSession.created_at)}</p>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-
-                    <Card>
-                      <CardContent className="p-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-lg bg-success/20 flex items-center justify-center">
-                            <CheckCircle2 className="w-5 h-5 text-success" />
-                          </div>
-                          <div>
-                            <p className="text-xs text-muted-foreground">Status</p>
-                            <p className="text-sm font-semibold capitalize">{selectedSession.status || "completed"}</p>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-
-                    <Card>
-                      <CardContent className="p-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-lg bg-chart-4/20 flex items-center justify-center">
-                            <User className="w-5 h-5 text-chart-4" />
-                          </div>
-                          <div>
-                            <p className="text-xs text-muted-foreground">Session ID</p>
-                            <p className="text-xs font-mono">{selectedSession.session_id?.slice(0, 16) || "N/A"}...</p>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </div>
-
-                  {/* Tabbed Content */}
-                  <Card>
-                    <Tabs defaultValue="conversation" className="w-full">
-                      <CardHeader className="pb-4">
-                        <TabsList className="grid w-full max-w-md grid-cols-3">
-                          <TabsTrigger value="conversation">Conversation</TabsTrigger>
-                          <TabsTrigger value="summary">Summary</TabsTrigger>
-                          <TabsTrigger value="metadata">Metadata</TabsTrigger>
-                        </TabsList>
-                      </CardHeader>
-
-                      <CardContent>
-                        <TabsContent value="conversation" className="mt-0">
-                          <div className="space-y-4">
-                            {selectedSession.conversation && selectedSession.conversation.length > 0 ? (
-                              selectedSession.conversation.map((msg, index) => {
-                                const isAgent = "assistant" in msg
-                                const message = isAgent ? msg.assistant : msg.user
-                                const role = isAgent ? "agent" : "user"
-
-                                return (
-                                  <div key={index} className={`flex ${role === "agent" ? "justify-start" : "justify-end"}`}>
-                                    <div
-                                      className={`max-w-[70%] rounded-lg p-4 ${role === "agent"
-                                        ? "bg-card border border-border"
-                                        : "bg-primary text-primary-foreground"
-                                        }`}
-                                    >
-                                      <div className="flex items-center gap-2 mb-2">
-                                        <span className="text-xs font-semibold">
-                                          {role === "agent" ? "AI Agent" : "Customer"}
-                                        </span>
-                                        <span className="text-xs opacity-70">{formatDate(msg.timestamp)}</span>
-                                      </div>
-                                      <p className="text-sm leading-relaxed">{message}</p>
-                                    </div>
-                                  </div>
-                                )
-                              })
-                            ) : (
-                              <p className="text-sm text-muted-foreground text-center py-8">
-                                No conversation data available
-                              </p>
-                            )}
-                          </div>
-                        </TabsContent>
-
-                        <TabsContent value="summary" className="mt-0">
-                          <div className="space-y-4">
-                            {selectedSession.summary ? (
-                              Object.entries(parseSummary(selectedSession.summary)).map(([key, value]) => (
-                                <div key={key} className="border-b border-border pb-4 last:border-0">
-                                  <p className="text-sm font-semibold text-foreground mb-2 capitalize">
-                                    {key.replace(/_/g, " ")}
-                                  </p>
-                                  {Array.isArray(value) ? (
-                                    <ul className="list-disc list-inside space-y-1">
-                                      {value.map((item, idx) => (
-                                        <li key={idx} className="text-sm text-muted-foreground">
-                                          {typeof item === "object" ? JSON.stringify(item) : item}
-                                        </li>
-                                      ))}
-                                    </ul>
-                                  ) : typeof value === "object" && value !== null ? (
-                                    <div className="pl-4 space-y-2">
-                                      {Object.entries(value).map(([subKey, subValue]) => (
-                                        <div key={subKey}>
-                                          <span className="text-sm font-medium">{subKey}: </span>
-                                          <span className="text-sm text-muted-foreground">{String(subValue)}</span>
-                                        </div>
-                                      ))}
-                                    </div>
-                                  ) : (
-                                    <p className="text-sm text-muted-foreground">{String(value)}</p>
-                                  )}
-                                </div>
-                              ))
-                            ) : (
-                              <p className="text-sm text-muted-foreground text-center py-8">No summary available</p>
-                            )}
-                          </div>
-                        </TabsContent>
-
-                        <TabsContent value="metadata" className="mt-0">
-                          <div className="space-y-4">
-                            {selectedSession.metadata && (
-                              <>
-                                <div className="border-b border-border pb-4">
-                                  <p className="text-sm font-semibold text-foreground mb-2">Call SID</p>
-                                  <p className="text-sm text-muted-foreground font-mono">
-                                    {selectedSession.metadata.call_sid || "N/A"}
-                                  </p>
-                                </div>
-                                <div className="border-b border-border pb-4">
-                                  <p className="text-sm font-semibold text-foreground mb-2">From</p>
-                                  <p className="text-sm text-muted-foreground">{selectedSession.metadata.from || "N/A"}</p>
-                                </div>
-                                <div className="border-b border-border pb-4">
-                                  <p className="text-sm font-semibold text-foreground mb-2">To</p>
-                                  <p className="text-sm text-muted-foreground">{selectedSession.metadata.to || "N/A"}</p>
-                                </div>
-                              </>
-                            )}
-                            {selectedSession.summary_generated_at && (
-                              <div className="border-b border-border pb-4">
-                                <p className="text-sm font-semibold text-foreground mb-2">Summary Generated At</p>
-                                <p className="text-sm text-muted-foreground">
-                                  {formatDate(selectedSession.summary_generated_at)}
-                                </p>
-                              </div>
-                            )}
-                            {selectedSession.ended_at && (
-                              <div className="border-b border-border pb-4">
-                                <p className="text-sm font-semibold text-foreground mb-2">Ended At</p>
-                                <p className="text-sm text-muted-foreground">{formatDate(selectedSession.ended_at)}</p>
-                              </div>
-                            )}
-                            {selectedSession.last_updated && (
-                              <div>
-                                <p className="text-sm font-semibold text-foreground mb-2">Last Updated</p>
-                                <p className="text-sm text-muted-foreground">{formatDate(selectedSession.last_updated)}</p>
-                              </div>
-                            )}
-                          </div>
-                        </TabsContent>
-                      </CardContent>
-                    </Tabs>
-                  </Card>
-                </>
-              )}
-            </div>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              </CardContent>
+            </Card>
           )}
         </main>
       </div>
