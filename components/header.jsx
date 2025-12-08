@@ -12,7 +12,7 @@ export default function Header({ title, subtitle }) {
           {subtitle && <p className="text-sm text-muted-foreground mt-1">{subtitle}</p>}
         </div>
 
-        <div className="flex items-center gap-2">
+        {/* <div className="flex items-center gap-2">
           <Button variant="ghost" size="icon">
             <Bell className="w-5 h-5" />
           </Button>
@@ -22,7 +22,7 @@ export default function Header({ title, subtitle }) {
           <Button variant="ghost" size="icon">
             <User className="w-5 h-5" />
           </Button>
-        </div>
+        </div> */}
       </div>
     </header>
   )

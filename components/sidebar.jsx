@@ -8,8 +8,9 @@ export default function Sidebar() {
   const pathname = usePathname()
 
   const navItems = [
+    { name: "Analytics", href: "/analytics", icon: BarChart3 }, 
     { name: "Summary", href: "/summary", icon: Phone },
-    // { name: "Analytics", href: "/analytics", icon: BarChart3 },
+
   ]
 
   return (
