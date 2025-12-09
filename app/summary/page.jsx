@@ -17,8 +17,21 @@ export default function SummaryPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
 
+  // Sanitize phone number - remove all non-numeric characters
+  const sanitizePhoneNumber = (value) => {
+    return value.replace(/[^0-9]/g, "")
+  }
+
+  // Handle phone number input change
+  const handlePhoneNumberChange = (e) => {
+    const sanitized = sanitizePhoneNumber(e.target.value)
+    setPhoneNumber(sanitized)
+  }
+
   const handleFetchSummary = async () => {
-    if (!phoneNumber.trim()) {
+    const sanitizedNumber = sanitizePhoneNumber(phoneNumber)
+
+    if (!sanitizedNumber.trim()) {
       setError("Please enter a phone number")
       return
     }
@@ -29,7 +42,7 @@ export default function SummaryPage() {
     setExpandedSessionId(null)
 
     try {
-      const data = await dashboardAPI.getConversation(phoneNumber)
+      const data = await dashboardAPI.getConversation(sanitizedNumber)
       console.log("API Response:", data)
 
       if (data && data.conversations && data.conversations.length > 0) {
@@ -336,9 +349,9 @@ export default function SummaryPage() {
               <div className="flex gap-4">
                 <Input
                   type="tel"
-                  placeholder="Enter phone number (e.g., 2182063791)"
+                  placeholder="Enter phone number (e.g., 2182063791 or (218) 206-3791)"
                   value={phoneNumber}
-                  onChange={(e) => setPhoneNumber(e.target.value)}
+                  onChange={handlePhoneNumberChange}
                   onKeyDown={(e) => e.key === "Enter" && handleFetchSummary()}
                   className="flex-1"
                 />
@@ -347,6 +360,11 @@ export default function SummaryPage() {
                   {loading ? "Loading..." : "Fetch Summary"}
                 </Button>
               </div>
+              {phoneNumber && (
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Sanitized number: {phoneNumber}
+                </p>
+              )}
               {error && (
                 <div className="mt-4 p-4 bg-destructive/10 border border-destructive/20 rounded-lg flex items-start gap-3">
                   <AlertCircle className="w-5 h-5 text-destructive mt-0.5" />
