@@ -42,7 +42,8 @@ import {
   ResponsiveContainer
 } from "recharts"
 
-const backend_url = process.env.NEXT_PUBLIC_API_BASE_URL
+const backend_url = process.env.NEXT_PUBLIC_API_URL;
+
 
 export default function AnalyticsPage() {
   const [stats, setStats] = useState(null)
@@ -65,7 +66,7 @@ export default function AnalyticsPage() {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const response = await fetch("https://nsbmfntr-8081.inc1.devtunnels.ms/api/dashboard/stats")
+        const response = await fetch(`${backend_url}/api/dashboard/stats`);
         const data = await response.json()
         setStats(data)
       } catch (error) {
@@ -82,7 +83,7 @@ export default function AnalyticsPage() {
   useEffect(() => {
     const fetchActiveCalls = async () => {
       try {
-        const response = await fetch("https://nsbmfntr-8081.inc1.devtunnels.ms/api/dashboard/active-calls")
+        const response = await fetch(`${backend_url}/api/dashboard/active-calls`);
         const data = await response.json()
         setActiveCalls(data.count || 0)
         setActiveCallsData(data.active_calls || [])
@@ -99,7 +100,7 @@ export default function AnalyticsPage() {
   const fetchConcernsBreakdown = async () => {
     setConcernsLoading(true)
     try {
-      let url = "https://nsbmfntr-8081.inc1.devtunnels.ms/api/dashboard/analytics/concerns-breakdown"
+      let url = `${backend_url}/api/dashboard/analytics/concerns-breakdown`
       const params = new URLSearchParams()
       if (concernsStartDate) params.append("start_date", concernsStartDate)
       if (concernsEndDate) params.append("end_date", concernsEndDate)
@@ -123,7 +124,8 @@ export default function AnalyticsPage() {
   const fetchRefundItems = async () => {
     setRefundLoading(true)
     try {
-      let url = "https://nsbmfntr-8081.inc1.devtunnels.ms/api/dashboard/analytics/refund-items?limit=20&min_count=1"
+      let url =
+        `${backend_url}/api/dashboard/analytics/refund-items?limit=20&min_count=1`;
       if (startDate) url += `&start_date=${startDate}`
       if (endDate) url += `&end_date=${endDate}`
 
