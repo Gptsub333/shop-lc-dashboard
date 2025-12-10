@@ -8,7 +8,7 @@ const _geistMono = Geist_Mono({ subsets: ["latin"] })
 export const metadata = {
   title: "ShopLC Voice Agent Dashboard",
   description: "Monitor and analyze voice agent performance",
-  generator: "SHIVAM PANDEY",
+  generator: "Holbox AI",
 
 }
 
