@@ -23,7 +23,7 @@ export default function ConcernsBreakdown({ onFetch, concernsData, concernsLoadi
             .map(([name, data]) => ({
                 name: name,
                 value: data.count,
-                percentage: data.percentage // Use API percentage
+                percentage: data.percentage // Use API percentage for individual charts
             }))
             .sort((a, b) => b.value - a.value)
     }
@@ -33,12 +33,24 @@ export default function ConcernsBreakdown({ onFetch, concernsData, concernsLoadi
     const budgetPayConcernsData = concernsData ? prepareConcernsPieData(concernsData.budget_pay) : []
     const policiesConcernsData = concernsData ? prepareConcernsPieData(concernsData.policies) : []
 
-    const summaryData = concernsData ? [
-        { name: "Orders", value: concernsData.orders.total, percentage: concernsData.orders.percentage, fill: CONCERN_COLORS.orders },
-        { name: "Refunds", value: concernsData.refunds.total, percentage: concernsData.refunds.percentage, fill: CONCERN_COLORS.refunds },
-        { name: "Budget Pay", value: concernsData.budget_pay.total, percentage: concernsData.budget_pay.percentage, fill: CONCERN_COLORS.budget_pay },
-        { name: "Policies", value: concernsData.policies.total, percentage: concernsData.policies.percentage, fill: CONCERN_COLORS.policies }
-    ].filter(item => item.value > 0) : []
+    // Calculate total concerns and percentages for summary chart
+    const summaryData = concernsData ? (() => {
+        const categories = [
+            { name: "Orders", value: concernsData.orders.total, fill: CONCERN_COLORS.orders },
+            { name: "Refunds", value: concernsData.refunds.total, fill: CONCERN_COLORS.refunds },
+            { name: "Budget Pay", value: concernsData.budget_pay.total, fill: CONCERN_COLORS.budget_pay },
+            { name: "Policies", value: concernsData.policies.total, fill: CONCERN_COLORS.policies }
+        ].filter(item => item.value > 0)
+
+        // Calculate total concerns (x)
+        const totalConcerns = categories.reduce((sum, item) => sum + item.value, 0)
+
+        // Calculate percentage for each category: (y/x) * 100
+        return categories.map(item => ({
+            ...item,
+            percentage: totalConcerns > 0 ? (item.value / totalConcerns) * 100 : 0
+        }))
+    })() : []
 
     const renderCustomLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percentage }) => {
         if (percentage < 5) return null
