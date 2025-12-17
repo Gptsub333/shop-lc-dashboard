@@ -64,8 +64,6 @@ export default function AnalyticsPage() {
     }
 
     fetchActiveCalls()
-    const interval = setInterval(fetchActiveCalls, 5000)
-    return () => clearInterval(interval)
   }, [])
 
   // Fetch concerns breakdown
