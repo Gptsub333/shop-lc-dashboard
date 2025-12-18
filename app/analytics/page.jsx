@@ -1,8 +1,10 @@
+// app/analytics/page.js - Protected Analytics Page
 "use client"
 
 import { useState, useEffect } from "react"
 import Sidebar from "@/components/sidebar"
 import Header from "@/components/header"
+import ProtectedRoute from "@/components/ProtectedRoute"
 import { RefreshCw } from "lucide-react"
 import HeroStatsGrid from "@/components/HeroStatsGrid"
 import ChartsRow from "@/components/ChartsRow"
@@ -13,27 +15,20 @@ import RefundItems from "@/components/RefundItems"
 
 const backend_url = process.env.NEXT_PUBLIC_API_URL
 
-export default function AnalyticsPage() {
+function AnalyticsContent() {
   const [stats, setStats] = useState(null)
   const [loading, setLoading] = useState(true)
-
-  // Active Calls State - Polls every 5 seconds
   const [activeCalls, setActiveCalls] = useState(0)
   const [activeCallsData, setActiveCallsData] = useState([])
-
-  // Concerns Breakdown State
   const [concernsData, setConcernsData] = useState(null)
   const [concernsLoading, setConcernsLoading] = useState(false)
   const [concernsStartDate, setConcernsStartDate] = useState("")
   const [concernsEndDate, setConcernsEndDate] = useState("")
-
-  // Refund Items State
   const [refundItems, setRefundItems] = useState([])
   const [refundLoading, setRefundLoading] = useState(false)
   const [startDate, setStartDate] = useState("")
   const [endDate, setEndDate] = useState("")
 
-  // Fetch dashboard stats (once on mount)
   useEffect(() => {
     const fetchStats = async () => {
       try {
@@ -50,7 +45,6 @@ export default function AnalyticsPage() {
     fetchStats()
   }, [])
 
-  // Active Calls Polling - Every 5 seconds
   useEffect(() => {
     const fetchActiveCalls = async () => {
       try {
@@ -68,7 +62,6 @@ export default function AnalyticsPage() {
     return () => clearInterval(interval)
   }, [])
 
-  // Fetch concerns breakdown
   const fetchConcernsBreakdown = async () => {
     setConcernsLoading(true)
     try {
@@ -89,7 +82,6 @@ export default function AnalyticsPage() {
     }
   }
 
-  // Fetch refund items
   const fetchRefundItems = async () => {
     setRefundLoading(true)
     try {
@@ -107,7 +99,6 @@ export default function AnalyticsPage() {
     }
   }
 
-  // Format date helper
   const formatDate = (dateString) => {
     if (!dateString) return "N/A"
     const date = new Date(dateString)
@@ -119,7 +110,6 @@ export default function AnalyticsPage() {
     })
   }
 
-  // Initial fetch for concerns and refund items
   useEffect(() => {
     fetchConcernsBreakdown()
     fetchRefundItems()
@@ -147,19 +137,10 @@ export default function AnalyticsPage() {
         <Header title="Analytics Dashboard" subtitle="Real-time voice agent performance metrics" />
 
         <main className="flex-1 overflow-y-auto p-8">
-          {/* Hero Stats Grid */}
           <HeroStatsGrid activeCalls={activeCalls} stats={stats} />
-
-          {/* Charts Row */}
           <ChartsRow activeCalls={activeCalls} stats={stats} />
-
-          {/* Voice Metrics Row */}
           <VoiceMetrics stats={stats} />
-
-          {/* Sentiment Analysis */}
           <SentimentAnalysis stats={stats} />
-
-          {/* Customer Concerns Breakdown Section */}
           <ConcernsBreakdown
             onFetch={fetchConcernsBreakdown}
             concernsData={concernsData}
@@ -169,8 +150,6 @@ export default function AnalyticsPage() {
             concernsEndDate={concernsEndDate}
             setConcernsEndDate={setConcernsEndDate}
           />
-
-          {/* Refund Items Section */}
           <RefundItems
             onFetch={fetchRefundItems}
             refundItems={refundItems}
@@ -184,5 +163,13 @@ export default function AnalyticsPage() {
         </main>
       </div>
     </div>
+  )
+}
+
+export default function AnalyticsPage() {
+  return (
+    <ProtectedRoute>
+      <AnalyticsContent />
+    </ProtectedRoute>
   )
 }

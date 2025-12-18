@@ -17,12 +17,10 @@ export default function SummaryPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
 
-  // Sanitize phone number - remove all non-numeric characters
   const sanitizePhoneNumber = (value) => {
     return value.replace(/[^0-9]/g, "")
   }
 
-  // Handle phone number input change
   const handlePhoneNumberChange = (e) => {
     const sanitized = sanitizePhoneNumber(e.target.value)
     setPhoneNumber(sanitized)
@@ -47,7 +45,6 @@ export default function SummaryPage() {
 
       if (data && data.conversations && data.conversations.length > 0) {
         setResponseData(data)
-        // Automatically expand the first conversation
         setExpandedSessionId(data.conversations[0].session_id)
       } else {
         setError("No conversations found for this phone number")
@@ -72,26 +69,6 @@ export default function SummaryPage() {
     }
   }
 
-  const formatActionItem = (item) => {
-    if (typeof item === "string") return item
-    if (typeof item === "object" && item.who && item.what) {
-      return `${item.who}: ${item.what}`
-    }
-    return JSON.stringify(item)
-  }
-
-  const formatIntent = (intent) => {
-    if (!intent) return "N/A"
-
-    // Extract text from parentheses if it exists
-    const match = intent.match(/\(([^)]+)\)/)
-    if (match) {
-      return match[1] // Return the text inside parentheses
-    }
-
-    return intent
-  }
-
   const formatDate = (dateString) => {
     if (!dateString) return "N/A"
     return new Date(dateString).toLocaleString("en-US", {
@@ -103,8 +80,40 @@ export default function SummaryPage() {
     })
   }
 
-  const renderSummaryValue = (key, value) => {
-    // Special handling for action_items
+  const formatActionItem = (item) => {
+    if (typeof item === "string") return item
+    if (typeof item === "object" && item.who && item.what) {
+      return `${item.who}: ${item.what}`
+    }
+    return JSON.stringify(item)
+  }
+
+  const formatIntent = (intent) => {
+    if (!intent) return "N/A"
+    const match = intent.match(/\(([^)]+)\)/)
+    if (match) {
+      return match[1]
+    }
+    return intent
+  }
+
+  // Extract only the summary field from parsed summary
+  const extractSummaryText = (summaryObj) => {
+    if (typeof summaryObj === 'string') return summaryObj
+    if (summaryObj && summaryObj.summary) return summaryObj.summary
+    return "No summary available"
+  }
+
+  // Extract metadata fields from summary (everything except 'summary')
+  const extractMetadataFromSummary = (summaryObj) => {
+    if (typeof summaryObj === 'string') return {}
+    if (!summaryObj) return {}
+
+    const { summary, ...metadata } = summaryObj
+    return metadata
+  }
+
+  const renderMetadataValue = (key, value) => {
     if (key === "action_items") {
       if (!Array.isArray(value) || value.length === 0) {
         return <p className="text-sm text-muted-foreground">No action items</p>
@@ -120,12 +129,10 @@ export default function SummaryPage() {
       )
     }
 
-    // Special handling for intent
     if (key === "intent") {
       return <p className="text-sm text-muted-foreground">{formatIntent(value)}</p>
     }
 
-    // Default handling for other fields
     if (Array.isArray(value)) {
       if (value.length === 0) {
         return <p className="text-sm text-muted-foreground">None</p>
@@ -158,6 +165,10 @@ export default function SummaryPage() {
   }
 
   const renderSessionDetails = (session) => {
+    const parsedSummary = parseSummary(session.summary)
+    const summaryText = extractSummaryText(parsedSummary)
+    const metadataFromSummary = extractMetadataFromSummary(parsedSummary)
+
     return (
       <div className="space-y-6 px-4 pb-4 pt-2">
         {/* Session Info Cards */}
@@ -223,67 +234,69 @@ export default function SummaryPage() {
         <Card>
           <Tabs defaultValue="conversation" className="w-full">
             <CardHeader className="pb-4">
-              <TabsList className="grid w-full max-w-md grid-cols-3">
-                <TabsTrigger value="conversation">Conversation</TabsTrigger>
-                <TabsTrigger value="summary">Summary</TabsTrigger>
-                <TabsTrigger value="metadata">Metadata</TabsTrigger>
+              <TabsList className="grid w-full max-w-md grid-cols-2">
+                <TabsTrigger value="conversation">Conversation & Summary</TabsTrigger>
+                <TabsTrigger value="calldata">Call Data</TabsTrigger>
               </TabsList>
             </CardHeader>
 
             <CardContent>
               <TabsContent value="conversation" className="mt-0">
-                <div className="space-y-4 max-h-[600px] overflow-y-auto">
-                  {session.conversation && session.conversation.length > 0 ? (
-                    session.conversation.map((msg, index) => {
-                      const isAgent = "assistant" in msg
-                      const message = isAgent ? msg.assistant : msg.user
-                      const role = isAgent ? "agent" : "user"
+                <div className="space-y-6">
 
-                      return (
-                        <div key={index} className={`flex ${role === "agent" ? "justify-start" : "justify-end"}`}>
-                          <div
-                            className={`max-w-[70%] rounded-lg p-4 ${role === "agent"
-                              ? "bg-card border border-border"
-                              : "bg-primary text-primary-foreground"
-                              }`}
-                          >
-                            <div className="flex items-center gap-2 mb-2">
-                              <span className="text-xs font-semibold">
-                                {role === "agent" ? "AI Agent" : "Customer"}
-                              </span>
-                              <span className="text-xs opacity-70">{formatDate(msg.timestamp)}</span>
+                  {/* Summary Section */}
+                  <div className="border-t pt-4">
+                    <h3 className="text-sm font-semibold mb-3">Summary</h3>
+                    <div className="bg-muted/50 rounded-lg p-4">
+                      <p className="text-sm text-muted-foreground leading-relaxed">
+                        {summaryText}
+                      </p>
+                    </div>
+                  </div>
+                  {/* Conversation Messages */}
+                  <div>
+                    <h3 className="text-sm font-semibold mb-3">Conversation</h3>
+                    <div className="space-y-4 max-h-[400px] overflow-y-auto">
+                      {session.conversation && session.conversation.length > 0 ? (
+                        session.conversation.map((msg, index) => {
+                          const isAgent = "assistant" in msg
+                          const message = isAgent ? msg.assistant : msg.user
+                          const role = isAgent ? "agent" : "user"
+
+                          return (
+                            <div key={index} className={`flex ${role === "agent" ? "justify-start" : "justify-end"}`}>
+                              <div
+                                className={`max-w-[70%] rounded-lg p-4 ${role === "agent"
+                                  ? "bg-card border border-border"
+                                  : "bg-primary text-primary-foreground"
+                                  }`}
+                              >
+                                <div className="flex items-center gap-2 mb-2">
+                                  <span className="text-xs font-semibold">
+                                    {role === "agent" ? "AI Agent" : "Customer"}
+                                  </span>
+                                  <span className="text-xs opacity-70">{formatDate(msg.timestamp)}</span>
+                                </div>
+                                <p className="text-sm leading-relaxed">{message}</p>
+                              </div>
                             </div>
-                            <p className="text-sm leading-relaxed">{message}</p>
-                          </div>
-                        </div>
-                      )
-                    })
-                  ) : (
-                    <p className="text-sm text-muted-foreground text-center py-8">
-                      No conversation data available
-                    </p>
-                  )}
-                </div>
-              </TabsContent>
-
-              <TabsContent value="summary" className="mt-0">
-                <div className="space-y-4 max-h-[600px] overflow-y-auto">
-                  {session.summary ? (
-                    Object.entries(parseSummary(session.summary)).map(([key, value]) => (
-                      <div key={key} className="border-b border-border pb-4 last:border-0">
-                        <p className="text-sm font-semibold text-foreground mb-2 capitalize">
-                          {key.replace(/_/g, " ")}
+                          )
+                        })
+                      ) : (
+                        <p className="text-sm text-muted-foreground text-center py-8">
+                          No conversation data available
                         </p>
-                        {renderSummaryValue(key, value)}
-                      </div>
-                    ))
-                  ) : (
-                    <p className="text-sm text-muted-foreground text-center py-8">No summary available</p>
-                  )}
+                      )}
+                    </div>
+                  </div>
+
+
+
+
                 </div>
               </TabsContent>
 
-              <TabsContent value="metadata" className="mt-0">
+              <TabsContent value="calldata" className="mt-0">
                 <div className="space-y-4 max-h-[600px] overflow-y-auto">
                   {session.metadata && (
                     <>
@@ -390,7 +403,6 @@ export default function SummaryPage() {
 
                     return (
                       <div key={conv.session_id} className="transition-all duration-200">
-                        {/* Call Item Header - Clickable */}
                         <button
                           onClick={() => toggleSession(conv.session_id)}
                           className="w-full p-4 hover:bg-muted/50 transition-colors text-left"
@@ -405,11 +417,9 @@ export default function SummaryPage() {
                               <div className="flex-1">
                                 <div className="flex items-center gap-3 mb-1">
                                   <p className="font-semibold text-sm">
-                                    Call #{responseData.conversations.length - index}
+                                    Call {responseData.conversations.length - index}
                                   </p>
-                                  <span className="text-xs px-2 py-0.5 rounded-full bg-success/20 text-success capitalize">
-                                    {conv.status}
-                                  </span>
+
                                 </div>
                                 <div className="flex items-center gap-4 text-xs text-muted-foreground">
                                   <span className="flex items-center gap-1">
@@ -434,7 +444,6 @@ export default function SummaryPage() {
                           </div>
                         </button>
 
-                        {/* Expandable Details */}
                         {isExpanded && (
                           <div className="border-t border-border bg-muted/30 animate-in slide-in-from-top-2 duration-300">
                             {renderSessionDetails(conv)}
