@@ -58,8 +58,6 @@ function AnalyticsContent() {
     }
 
     fetchActiveCalls()
-    const interval = setInterval(fetchActiveCalls, 5000)
-    return () => clearInterval(interval)
   }, [])
 
   const fetchConcernsBreakdown = async () => {
