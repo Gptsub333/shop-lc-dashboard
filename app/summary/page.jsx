@@ -21,16 +21,53 @@ export default function SummaryPage() {
     return value.replace(/[^0-9]/g, "")
   }
 
+  // const handlePhoneNumberChange = (e) => {
+  //   const sanitized = sanitizePhoneNumber(e.target.value)
+  //   setPhoneNumber(sanitized)
+  // }
   const handlePhoneNumberChange = (e) => {
     const sanitized = sanitizePhoneNumber(e.target.value)
-    setPhoneNumber(sanitized)
+    // Limit to 11 digits (1 + 10 digits) or 10 digits
+    const limited = sanitized.slice(0, 11)
+    setPhoneNumber(limited)
   }
 
-  const handleFetchSummary = async () => {
-    const sanitizedNumber = sanitizePhoneNumber(phoneNumber)
 
-    if (!sanitizedNumber.trim()) {
-      setError("Please enter a phone number")
+  // const handleFetchSummary = async () => {
+  //   const sanitizedNumber = sanitizePhoneNumber(phoneNumber)
+
+  //   if (!sanitizedNumber.trim()) {
+  //     setError("Please enter a phone number")
+  //     return
+  //   }
+
+  //   setLoading(true)
+  //   setError(null)
+  //   setResponseData(null)
+  //   setExpandedSessionId(null)
+
+  //   try {
+  //     const data = await dashboardAPI.getConversation(sanitizedNumber)
+  //     console.log("API Response:", data)
+
+  //     if (data && data.conversations && data.conversations.length > 0) {
+  //       setResponseData(data)
+  //       setExpandedSessionId(data.conversations[0].session_id)
+  //     } else {
+  //       setError("No conversations found for this phone number")
+  //     }
+  //   } catch (err) {
+  //     setError(err.message || "Failed to fetch conversation. Please check the phone number and try again.")
+  //   } finally {
+  //     setLoading(false)
+  //   }
+  // }
+  const handleFetchSummary = async () => {
+    const sanitized = sanitizePhoneNumber(phoneNumber)
+    const formattedNumber = formatUSPhoneNumber(sanitized)
+
+    if (!formattedNumber) {
+      setError("Please enter a valid 10-digit US phone number")
       return
     }
 
@@ -40,8 +77,9 @@ export default function SummaryPage() {
     setExpandedSessionId(null)
 
     try {
-      const data = await dashboardAPI.getConversation(sanitizedNumber)
+      const data = await dashboardAPI.getConversation(formattedNumber) // Use formattedNumber here
       console.log("API Response:", data)
+      console.log("Formatted number sent:", formattedNumber)
 
       if (data && data.conversations && data.conversations.length > 0) {
         setResponseData(data)
@@ -67,6 +105,20 @@ export default function SummaryPage() {
     } catch {
       return { summary: summaryString }
     }
+  }
+
+  //format number
+  const formatUSPhoneNumber = (sanitized) => {
+    // Remove any leading 1 if present
+    let digits = sanitized.replace(/^1/, "")
+
+    // Ensure exactly 10 digits
+    if (digits.length > 10) {
+      digits = digits.slice(0, 10)
+    }
+
+    // Return with country code 1
+    return digits.length === 10 ? `1${digits}` : null
   }
 
   const formatDate = (dateString) => {
