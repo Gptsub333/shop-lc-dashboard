@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Search, Phone, Clock, CheckCircle2, User, AlertCircle, ChevronDown, ChevronUp, MessageSquare } from "lucide-react"
+import { Search, Phone, Clock, CheckCircle2, User, AlertCircle, ChevronDown, ChevronUp, MessageSquare, ChevronLeft, ChevronRight } from "lucide-react"
 import { dashboardAPI } from "@/lib/api-client"
 
 export default function SummaryPage() {
@@ -16,52 +16,27 @@ export default function SummaryPage() {
   const [expandedSessionId, setExpandedSessionId] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
+  const [currentPage, setCurrentPage] = useState(1)
+  const itemsPerPage = 10
 
   const sanitizePhoneNumber = (value) => {
     return value.replace(/[^0-9]/g, "")
   }
 
-  // const handlePhoneNumberChange = (e) => {
-  //   const sanitized = sanitizePhoneNumber(e.target.value)
-  //   setPhoneNumber(sanitized)
-  // }
   const handlePhoneNumberChange = (e) => {
     const sanitized = sanitizePhoneNumber(e.target.value)
-    // Limit to 11 digits (1 + 10 digits) or 10 digits
     const limited = sanitized.slice(0, 11)
     setPhoneNumber(limited)
   }
 
+  const formatUSPhoneNumber = (sanitized) => {
+    let digits = sanitized.replace(/^1/, "")
+    if (digits.length > 10) {
+      digits = digits.slice(0, 10)
+    }
+    return digits.length === 10 ? `1${digits}` : null
+  }
 
-  // const handleFetchSummary = async () => {
-  //   const sanitizedNumber = sanitizePhoneNumber(phoneNumber)
-
-  //   if (!sanitizedNumber.trim()) {
-  //     setError("Please enter a phone number")
-  //     return
-  //   }
-
-  //   setLoading(true)
-  //   setError(null)
-  //   setResponseData(null)
-  //   setExpandedSessionId(null)
-
-  //   try {
-  //     const data = await dashboardAPI.getConversation(sanitizedNumber)
-  //     console.log("API Response:", data)
-
-  //     if (data && data.conversations && data.conversations.length > 0) {
-  //       setResponseData(data)
-  //       setExpandedSessionId(data.conversations[0].session_id)
-  //     } else {
-  //       setError("No conversations found for this phone number")
-  //     }
-  //   } catch (err) {
-  //     setError(err.message || "Failed to fetch conversation. Please check the phone number and try again.")
-  //   } finally {
-  //     setLoading(false)
-  //   }
-  // }
   const handleFetchSummary = async () => {
     const sanitized = sanitizePhoneNumber(phoneNumber)
     const formattedNumber = formatUSPhoneNumber(sanitized)
@@ -75,9 +50,11 @@ export default function SummaryPage() {
     setError(null)
     setResponseData(null)
     setExpandedSessionId(null)
+    setCurrentPage(1)
 
     try {
-      const data = await dashboardAPI.getConversation(formattedNumber) // Use formattedNumber here
+      // Replace with your actual API call
+      const data = await dashboardAPI.getConversation(formattedNumber)
       console.log("API Response:", data)
       console.log("Formatted number sent:", formattedNumber)
 
@@ -105,20 +82,6 @@ export default function SummaryPage() {
     } catch {
       return { summary: summaryString }
     }
-  }
-
-  //format number
-  const formatUSPhoneNumber = (sanitized) => {
-    // Remove any leading 1 if present
-    let digits = sanitized.replace(/^1/, "")
-
-    // Ensure exactly 10 digits
-    if (digits.length > 10) {
-      digits = digits.slice(0, 10)
-    }
-
-    // Return with country code 1
-    return digits.length === 10 ? `1${digits}` : null
   }
 
   const formatDate = (dateString) => {
@@ -149,18 +112,15 @@ export default function SummaryPage() {
     return intent
   }
 
-  // Extract only the summary field from parsed summary
   const extractSummaryText = (summaryObj) => {
     if (typeof summaryObj === 'string') return summaryObj
     if (summaryObj && summaryObj.summary) return summaryObj.summary
     return "No summary available"
   }
 
-  // Extract metadata fields from summary (everything except 'summary')
   const extractMetadataFromSummary = (summaryObj) => {
     if (typeof summaryObj === 'string') return {}
     if (!summaryObj) return {}
-
     const { summary, ...metadata } = summaryObj
     return metadata
   }
@@ -223,7 +183,6 @@ export default function SummaryPage() {
 
     return (
       <div className="space-y-6 px-4 pb-4 pt-2">
-        {/* Session Info Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <Card>
             <CardContent className="p-4">
@@ -282,7 +241,6 @@ export default function SummaryPage() {
           </Card>
         </div>
 
-        {/* Tabbed Content */}
         <Card>
           <Tabs defaultValue="conversation" className="w-full">
             <CardHeader className="pb-4">
@@ -295,8 +253,6 @@ export default function SummaryPage() {
             <CardContent>
               <TabsContent value="conversation" className="mt-0">
                 <div className="space-y-6">
-
-                  {/* Summary Section */}
                   <div className="border-t pt-4">
                     <h3 className="text-sm font-semibold mb-3">Summary</h3>
                     <div className="bg-muted/50 rounded-lg p-4">
@@ -305,7 +261,7 @@ export default function SummaryPage() {
                       </p>
                     </div>
                   </div>
-                  {/* Conversation Messages */}
+
                   <div>
                     <h3 className="text-sm font-semibold mb-3">Conversation</h3>
                     <div className="space-y-4 max-h-[400px] overflow-y-auto">
@@ -341,10 +297,6 @@ export default function SummaryPage() {
                       )}
                     </div>
                   </div>
-
-
-
-
                 </div>
               </TabsContent>
 
@@ -397,6 +349,31 @@ export default function SummaryPage() {
     )
   }
 
+  // Pagination logic
+  const totalPages = responseData ? Math.ceil(responseData.conversations.length / itemsPerPage) : 0
+  const startIndex = (currentPage - 1) * itemsPerPage
+  const endIndex = startIndex + itemsPerPage
+  const currentConversations = responseData ? responseData.conversations.slice(startIndex, endIndex) : []
+
+  const goToNextPage = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage(currentPage + 1)
+      setExpandedSessionId(null)
+    }
+  }
+
+  const goToPreviousPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage(currentPage - 1)
+      setExpandedSessionId(null)
+    }
+  }
+
+  const goToPage = (page) => {
+    setCurrentPage(page)
+    setExpandedSessionId(null)
+  }
+
   return (
     <div className="flex h-screen bg-background">
       <Sidebar />
@@ -445,13 +422,20 @@ export default function SummaryPage() {
           {responseData && responseData.conversations && responseData.conversations.length > 0 && (
             <Card>
               <CardHeader>
-                <CardTitle>Call History ({responseData.total})</CardTitle>
-                <CardDescription>Click on any call to view details</CardDescription>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>Call History ({responseData.total || responseData.conversations.length})</CardTitle>
+                    <CardDescription>
+                      Showing {startIndex + 1}-{Math.min(endIndex, responseData.conversations.length)} of {responseData.conversations.length} calls
+                    </CardDescription>
+                  </div>
+                </div>
               </CardHeader>
               <CardContent className="p-0">
                 <div className="divide-y divide-border">
-                  {responseData.conversations.map((conv, index) => {
+                  {currentConversations.map((conv, index) => {
                     const isExpanded = expandedSessionId === conv.session_id
+                    const globalIndex = startIndex + index
 
                     return (
                       <div key={conv.session_id} className="transition-all duration-200">
@@ -469,9 +453,8 @@ export default function SummaryPage() {
                               <div className="flex-1">
                                 <div className="flex items-center gap-3 mb-1">
                                   <p className="font-semibold text-sm">
-                                    Call {responseData.conversations.length - index}
+                                    Call {responseData.conversations.length - globalIndex}
                                   </p>
-
                                 </div>
                                 <div className="flex items-center gap-4 text-xs text-muted-foreground">
                                   <span className="flex items-center gap-1">
@@ -505,6 +488,64 @@ export default function SummaryPage() {
                     )
                   })}
                 </div>
+
+                {/* Pagination Controls */}
+                {totalPages > 1 && (
+                  <div className="border-t border-border p-4">
+                    <div className="flex items-center justify-between">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={goToPreviousPage}
+                        disabled={currentPage === 1}
+                      >
+                        <ChevronLeft className="w-4 h-4 mr-1" />
+                        Previous
+                      </Button>
+
+                      <div className="flex items-center gap-2">
+                        {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
+                          let pageNum
+                          if (totalPages <= 7) {
+                            pageNum = i + 1
+                          } else if (currentPage <= 4) {
+                            pageNum = i + 1
+                          } else if (currentPage >= totalPages - 3) {
+                            pageNum = totalPages - 6 + i
+                          } else {
+                            pageNum = currentPage - 3 + i
+                          }
+
+                          return (
+                            <Button
+                              key={pageNum}
+                              variant={currentPage === pageNum ? "default" : "outline"}
+                              size="sm"
+                              onClick={() => goToPage(pageNum)}
+                              className="w-9 h-9 p-0"
+                            >
+                              {pageNum}
+                            </Button>
+                          )
+                        })}
+                      </div>
+
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={goToNextPage}
+                        disabled={currentPage === totalPages}
+                      >
+                        Next
+                        <ChevronRight className="w-4 h-4 ml-1" />
+                      </Button>
+                    </div>
+
+                    <p className="text-xs text-muted-foreground text-center mt-3">
+                      Page {currentPage} of {totalPages}
+                    </p>
+                  </div>
+                )}
               </CardContent>
             </Card>
           )}
