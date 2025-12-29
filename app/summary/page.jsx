@@ -17,7 +17,7 @@ export default function SummaryPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [currentPage, setCurrentPage] = useState(1)
-  const itemsPerPage = 10
+  const pageSize = 10
 
   const sanitizePhoneNumber = (value) => {
     return value.replace(/[^0-9]/g, "")
@@ -37,6 +37,30 @@ export default function SummaryPage() {
     return digits.length === 10 ? `1${digits}` : null
   }
 
+  const fetchConversations = async (formattedNumber, page) => {
+    setLoading(true)
+    setError(null)
+    setExpandedSessionId(null)
+
+    try {
+      const data = await dashboardAPI.getConversation(formattedNumber, page, pageSize)
+      console.log("API Response:", data)
+
+      if (data && data.conversations && data.conversations.length > 0) {
+        setResponseData(data)
+        setExpandedSessionId(data.conversations[0].session_id)
+      } else {
+        setError("No conversations found for this phone number")
+        setResponseData(null)
+      }
+    } catch (err) {
+      setError(err.message || "Failed to fetch conversation. Please check the phone number and try again.")
+      setResponseData(null)
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const handleFetchSummary = async () => {
     const sanitized = sanitizePhoneNumber(phoneNumber)
     const formattedNumber = formatUSPhoneNumber(sanitized)
@@ -46,29 +70,8 @@ export default function SummaryPage() {
       return
     }
 
-    setLoading(true)
-    setError(null)
-    setResponseData(null)
-    setExpandedSessionId(null)
     setCurrentPage(1)
-
-    try {
-      // Replace with your actual API call
-      const data = await dashboardAPI.getConversation(formattedNumber)
-      console.log("API Response:", data)
-      console.log("Formatted number sent:", formattedNumber)
-
-      if (data && data.conversations && data.conversations.length > 0) {
-        setResponseData(data)
-        setExpandedSessionId(data.conversations[0].session_id)
-      } else {
-        setError("No conversations found for this phone number")
-      }
-    } catch (err) {
-      setError(err.message || "Failed to fetch conversation. Please check the phone number and try again.")
-    } finally {
-      setLoading(false)
-    }
+    await fetchConversations(formattedNumber, 1)
   }
 
   const toggleSession = (sessionId) => {
@@ -349,29 +352,68 @@ export default function SummaryPage() {
     )
   }
 
-  // Pagination logic
-  const totalPages = responseData ? Math.ceil(responseData.conversations.length / itemsPerPage) : 0
-  const startIndex = (currentPage - 1) * itemsPerPage
-  const endIndex = startIndex + itemsPerPage
-  const currentConversations = responseData ? responseData.conversations.slice(startIndex, endIndex) : []
-
-  const goToNextPage = () => {
-    if (currentPage < totalPages) {
-      setCurrentPage(currentPage + 1)
-      setExpandedSessionId(null)
+  const goToNextPage = async () => {
+    if (currentPage < responseData.total_pages) {
+      const nextPage = currentPage + 1
+      setCurrentPage(nextPage)
+      const sanitized = sanitizePhoneNumber(phoneNumber)
+      const formattedNumber = formatUSPhoneNumber(sanitized)
+      await fetchConversations(formattedNumber, nextPage)
     }
   }
 
-  const goToPreviousPage = () => {
+  const goToPreviousPage = async () => {
     if (currentPage > 1) {
-      setCurrentPage(currentPage - 1)
-      setExpandedSessionId(null)
+      const prevPage = currentPage - 1
+      setCurrentPage(prevPage)
+      const sanitized = sanitizePhoneNumber(phoneNumber)
+      const formattedNumber = formatUSPhoneNumber(sanitized)
+      await fetchConversations(formattedNumber, prevPage)
     }
   }
 
-  const goToPage = (page) => {
+  const goToPage = async (page) => {
     setCurrentPage(page)
-    setExpandedSessionId(null)
+    const sanitized = sanitizePhoneNumber(phoneNumber)
+    const formattedNumber = formatUSPhoneNumber(sanitized)
+    await fetchConversations(formattedNumber, page)
+  }
+
+  const getPageNumbers = () => {
+    if (!responseData) return []
+
+    const totalPages = responseData.total_pages
+    const pages = []
+
+    if (totalPages <= 7) {
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i)
+      }
+    } else {
+      if (currentPage <= 4) {
+        for (let i = 1; i <= 5; i++) {
+          pages.push(i)
+        }
+        pages.push('...')
+        pages.push(totalPages)
+      } else if (currentPage >= totalPages - 3) {
+        pages.push(1)
+        pages.push('...')
+        for (let i = totalPages - 4; i <= totalPages; i++) {
+          pages.push(i)
+        }
+      } else {
+        pages.push(1)
+        pages.push('...')
+        for (let i = currentPage - 1; i <= currentPage + 1; i++) {
+          pages.push(i)
+        }
+        pages.push('...')
+        pages.push(totalPages)
+      }
+    }
+
+    return pages
   }
 
   return (
@@ -424,18 +466,18 @@ export default function SummaryPage() {
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div>
-                    <CardTitle>Call History ({responseData.total || responseData.conversations.length})</CardTitle>
+                    <CardTitle>Call History ({responseData.total})</CardTitle>
                     <CardDescription>
-                      Showing {startIndex + 1}-{Math.min(endIndex, responseData.conversations.length)} of {responseData.conversations.length} calls
+                      Showing page {responseData.page} of {responseData.total_pages} ({responseData.conversations.length} calls on this page)
                     </CardDescription>
                   </div>
                 </div>
               </CardHeader>
               <CardContent className="p-0">
                 <div className="divide-y divide-border">
-                  {currentConversations.map((conv, index) => {
+                  {responseData.conversations.map((conv, index) => {
                     const isExpanded = expandedSessionId === conv.session_id
-                    const globalIndex = startIndex + index
+                    const callNumber = responseData.total - ((currentPage - 1) * pageSize + index)
 
                     return (
                       <div key={conv.session_id} className="transition-all duration-200">
@@ -453,7 +495,7 @@ export default function SummaryPage() {
                               <div className="flex-1">
                                 <div className="flex items-center gap-3 mb-1">
                                   <p className="font-semibold text-sm">
-                                    Call {responseData.conversations.length - globalIndex}
+                                    Call {callNumber}
                                   </p>
                                 </div>
                                 <div className="flex items-center gap-4 text-xs text-muted-foreground">
@@ -490,30 +532,27 @@ export default function SummaryPage() {
                 </div>
 
                 {/* Pagination Controls */}
-                {totalPages > 1 && (
+                {responseData.total_pages > 1 && (
                   <div className="border-t border-border p-4">
                     <div className="flex items-center justify-between">
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={goToPreviousPage}
-                        disabled={currentPage === 1}
+                        disabled={currentPage === 1 || loading}
                       >
                         <ChevronLeft className="w-4 h-4 mr-1" />
                         Previous
                       </Button>
 
                       <div className="flex items-center gap-2">
-                        {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
-                          let pageNum
-                          if (totalPages <= 7) {
-                            pageNum = i + 1
-                          } else if (currentPage <= 4) {
-                            pageNum = i + 1
-                          } else if (currentPage >= totalPages - 3) {
-                            pageNum = totalPages - 6 + i
-                          } else {
-                            pageNum = currentPage - 3 + i
+                        {getPageNumbers().map((pageNum, idx) => {
+                          if (pageNum === '...') {
+                            return (
+                              <span key={`ellipsis-${idx}`} className="px-2 text-muted-foreground">
+                                ...
+                              </span>
+                            )
                           }
 
                           return (
@@ -522,6 +561,7 @@ export default function SummaryPage() {
                               variant={currentPage === pageNum ? "default" : "outline"}
                               size="sm"
                               onClick={() => goToPage(pageNum)}
+                              disabled={loading}
                               className="w-9 h-9 p-0"
                             >
                               {pageNum}
@@ -534,7 +574,7 @@ export default function SummaryPage() {
                         variant="outline"
                         size="sm"
                         onClick={goToNextPage}
-                        disabled={currentPage === totalPages}
+                        disabled={currentPage === responseData.total_pages || loading}
                       >
                         Next
                         <ChevronRight className="w-4 h-4 ml-1" />
@@ -542,7 +582,7 @@ export default function SummaryPage() {
                     </div>
 
                     <p className="text-xs text-muted-foreground text-center mt-3">
-                      Page {currentPage} of {totalPages}
+                      Page {currentPage} of {responseData.total_pages} • Total: {responseData.total} calls
                     </p>
                   </div>
                 )}
