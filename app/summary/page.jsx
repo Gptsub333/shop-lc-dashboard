@@ -474,62 +474,72 @@ export default function SummaryPage() {
                 </div>
               </CardHeader>
               <CardContent className="p-0">
-                <div className="divide-y divide-border">
-                  {responseData.conversations.map((conv, index) => {
-                    const isExpanded = expandedSessionId === conv.session_id
-                    const callNumber = responseData.total - ((currentPage - 1) * pageSize + index)
+                {loading ? (
+                  <div className="flex flex-col items-center justify-center py-16 space-y-4">
+                    <div className="relative w-16 h-16">
+                      <div className="absolute top-0 left-0 w-full h-full border-4 border-primary/20 rounded-full"></div>
+                      <div className="absolute top-0 left-0 w-full h-full border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+                    </div>
+                    <p className="text-sm text-muted-foreground">Loading conversations...</p>
+                  </div>
+                ) : (
+                  <div className="divide-y divide-border">
+                    {responseData.conversations.map((conv, index) => {
+                      const isExpanded = expandedSessionId === conv.session_id
+                      const callNumber = responseData.total - ((currentPage - 1) * pageSize + index)
 
-                    return (
-                      <div key={conv.session_id} className="transition-all duration-200">
-                        <button
-                          onClick={() => toggleSession(conv.session_id)}
-                          className="w-full p-4 hover:bg-muted/50 transition-colors text-left"
-                        >
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-4 flex-1">
-                              <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${isExpanded ? "bg-primary text-primary-foreground" : "bg-primary/10 text-primary"
-                                }`}>
-                                <MessageSquare className="w-5 h-5" />
+                      return (
+                        <div key={conv.session_id} className="transition-all duration-200">
+                          <button
+                            onClick={() => toggleSession(conv.session_id)}
+                            className="w-full p-4 hover:bg-muted/50 transition-colors text-left"
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-4 flex-1">
+                                <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${isExpanded ? "bg-primary text-primary-foreground" : "bg-primary/10 text-primary"
+                                  }`}>
+                                  <MessageSquare className="w-5 h-5" />
+                                </div>
+
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-3 mb-1">
+                                    <p className="font-semibold text-sm">
+                                      Call {callNumber}
+                                    </p>
+                                  </div>
+                                  <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                                    <span className="flex items-center gap-1">
+                                      <Clock className="w-3 h-3" />
+                                      {formatDate(conv.created_at)}
+                                    </span>
+                                    <span className="flex items-center gap-1">
+                                      <MessageSquare className="w-3 h-3" />
+                                      {conv.conversation?.length || 0} messages
+                                    </span>
+                                  </div>
+                                </div>
                               </div>
 
-                              <div className="flex-1">
-                                <div className="flex items-center gap-3 mb-1">
-                                  <p className="font-semibold text-sm">
-                                    Call {callNumber}
-                                  </p>
-                                </div>
-                                <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                                  <span className="flex items-center gap-1">
-                                    <Clock className="w-3 h-3" />
-                                    {formatDate(conv.created_at)}
-                                  </span>
-                                  <span className="flex items-center gap-1">
-                                    <MessageSquare className="w-3 h-3" />
-                                    {conv.conversation?.length || 0} messages
-                                  </span>
-                                </div>
+                              <div className="ml-4">
+                                {isExpanded ? (
+                                  <ChevronUp className="w-5 h-5 text-muted-foreground" />
+                                ) : (
+                                  <ChevronDown className="w-5 h-5 text-muted-foreground" />
+                                )}
                               </div>
                             </div>
+                          </button>
 
-                            <div className="ml-4">
-                              {isExpanded ? (
-                                <ChevronUp className="w-5 h-5 text-muted-foreground" />
-                              ) : (
-                                <ChevronDown className="w-5 h-5 text-muted-foreground" />
-                              )}
+                          {isExpanded && (
+                            <div className="border-t border-border bg-muted/30 animate-in slide-in-from-top-2 duration-300">
+                              {renderSessionDetails(conv)}
                             </div>
-                          </div>
-                        </button>
-
-                        {isExpanded && (
-                          <div className="border-t border-border bg-muted/30 animate-in slide-in-from-top-2 duration-300">
-                            {renderSessionDetails(conv)}
-                          </div>
-                        )}
-                      </div>
-                    )
-                  })}
-                </div>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
 
                 {/* Pagination Controls */}
                 {responseData.total_pages > 1 && (

@@ -280,7 +280,7 @@ function CategoryPieChart({ title, icon, color, total, percentage, data }) {
                     {title}
                 </CardTitle>
                 <CardDescription>
-                    {total} conversations ({percentage.toFixed(1)}%)
+                    {total} conversations
                 </CardDescription>
             </CardHeader>
             <CardContent>
