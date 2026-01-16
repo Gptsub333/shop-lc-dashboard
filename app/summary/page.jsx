@@ -89,12 +89,15 @@ export default function SummaryPage() {
 
   const formatDate = (dateString) => {
     if (!dateString) return "N/A"
-    return new Date(dateString).toLocaleString("en-US", {
+    const date = new Date(dateString)
+    // Format in CST without timezone conversion
+    return date.toLocaleString("en-US", {
       month: "short",
-      day: "numeric",
+      day: "numeric", 
       year: "numeric",
       hour: "2-digit",
       minute: "2-digit",
+      timeZone: "America/Chicago"
     })
   }
 
