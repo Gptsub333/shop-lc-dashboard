@@ -47,8 +47,16 @@ export default function SummaryPage() {
       console.log("API Response:", data)
 
       if (data && data.conversations && data.conversations.length > 0) {
-        setResponseData(data)
-        setExpandedSessionId(data.conversations[0].session_id)
+        // Sort conversations by created_at in descending order (newest first)
+        const sortedConversations = data.conversations.sort((a, b) => {
+          const dateA = new Date(a.created_at)
+          const dateB = new Date(b.created_at)
+          return dateB - dateA // Descending order
+        })
+        
+        const sortedData = { ...data, conversations: sortedConversations }
+        setResponseData(sortedData)
+        setExpandedSessionId(sortedConversations[0].session_id)
       } else {
         setError("No conversations found for this phone number")
         setResponseData(null)
