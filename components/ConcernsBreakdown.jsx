@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { MessageSquare, RefreshCw, Phone, AlertTriangle, Activity, BarChart3, PieChart as PieChartIcon } from "lucide-react"
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from "recharts"
+import ConcernsSkeleton from "./ConcernsSkeleton"
 
 const COLORS = ["#ef4444", "#f59e0b", "#eab308", "#84cc16", "#22c55e", "#14b8a6", "#06b6d4", "#3b82f6", "#6366f1", "#8b5cf6"]
 
@@ -131,10 +132,7 @@ export default function ConcernsBreakdown({ onFetch, concernsData, concernsLoadi
                 </div>
 
                 {concernsLoading ? (
-                    <div className="flex items-center justify-center py-12">
-                        <RefreshCw className="w-6 h-6 animate-spin text-muted-foreground" />
-                        <span className="ml-2 text-muted-foreground">Loading concerns data...</span>
-                    </div>
+                    <ConcernsSkeleton />
                 ) : !concernsData ? (
                     <div className="text-center py-12 bg-muted/20 rounded-lg">
                         <MessageSquare className="w-12 h-12 text-muted-foreground mx-auto mb-4 opacity-50" />
@@ -143,7 +141,7 @@ export default function ConcernsBreakdown({ onFetch, concernsData, concernsLoadi
                 ) : (
                     <div className="space-y-8">
                         {/* Summary Pie Chart */}
-                        <Card className="bg-gradient-to-br from-primary/5 to-primary/10 border-primary/30">
+                        <Card className="bg-linear-to-br from-primary/5 to-primary/10 border-primary/30">
                             <CardHeader>
                                 <CardTitle className="flex items-center gap-2">
                                     <PieChartIcon className="w-5 h-5 text-primary" />

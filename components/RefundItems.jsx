@@ -4,6 +4,8 @@ import { Input } from "@/components/ui/input"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { AlertTriangle, RefreshCw, BarChart3 } from "lucide-react"
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Cell, ResponsiveContainer } from "recharts"
+import RefundItemsSkeleton from "./RefundItemsSkeleton"
+import RefundChartSkeleton from "./RefundChartSkeleton"
 
 const COLORS = ["#ef4444", "#f59e0b", "#eab308", "#84cc16", "#22c55e", "#14b8a6", "#06b6d4", "#3b82f6", "#6366f1", "#8b5cf6"]
 
@@ -71,10 +73,7 @@ export default function RefundItems({ onFetch, refundItems, refundLoading, start
 
                     <TabsContent value="table" className="mt-0">
                         {refundLoading ? (
-                            <div className="flex items-center justify-center py-12">
-                                <RefreshCw className="w-6 h-6 animate-spin text-muted-foreground" />
-                                <span className="ml-2 text-muted-foreground">Loading refund items...</span>
-                            </div>
+                            <RefundItemsSkeleton />
                         ) : refundItems.length === 0 ? (
                             <div className="text-center py-12 bg-muted/20 rounded-lg">
                                 <AlertTriangle className="w-12 h-12 text-muted-foreground mx-auto mb-4 opacity-50" />
@@ -134,10 +133,7 @@ export default function RefundItems({ onFetch, refundItems, refundLoading, start
 
                     <TabsContent value="chart" className="mt-0">
                         {refundLoading ? (
-                            <div className="flex items-center justify-center py-12">
-                                <RefreshCw className="w-6 h-6 animate-spin text-muted-foreground" />
-                                <span className="ml-2 text-muted-foreground">Loading chart...</span>
-                            </div>
+                            <RefundChartSkeleton />
                         ) : refundChartData.length === 0 ? (
                             <div className="text-center py-12 bg-muted/20 rounded-lg">
                                 <BarChart3 className="w-12 h-12 text-muted-foreground mx-auto mb-4 opacity-50" />

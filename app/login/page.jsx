@@ -25,7 +25,7 @@ export default function LoginPage() {
         const result = login(username, password)
 
         if (result.success) {
-            router.push('/')
+            router.push('/analytics')
         } else {
             setError(result.error)
         }

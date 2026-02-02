@@ -1,11 +1,11 @@
 // app/analytics/page.js - Protected Analytics Page
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import Sidebar from "@/components/sidebar"
 import Header from "@/components/header"
 import ProtectedRoute from "@/components/ProtectedRoute"
-import { RefreshCw } from "lucide-react"
+import AnalyticsSkeleton from "@/components/AnalyticsSkeleton"
 import HeroStatsGrid from "@/components/HeroStatsGrid"
 import ChartsRow from "@/components/ChartsRow"
 import VoiceMetrics from "@/components/VoiceMetrics"
@@ -29,8 +29,17 @@ function AnalyticsContent() {
   const [startDate, setStartDate] = useState("")
   const [endDate, setEndDate] = useState("")
 
+  // Refs to track if APIs have been called
+  const statsCalledRef = useRef(false)
+  const activeCallsCalledRef = useRef(false)
+  const concernsCalledRef = useRef(false)
+  const refundsCalledRef = useRef(false)
+
   useEffect(() => {
     const fetchStats = async () => {
+      if (statsCalledRef.current) return
+      statsCalledRef.current = true
+
       try {
         const response = await fetch(`${backend_url}/api/dashboard/stats`)
         const data = await response.json()
@@ -47,6 +56,9 @@ function AnalyticsContent() {
 
   useEffect(() => {
     const fetchActiveCalls = async () => {
+      if (activeCallsCalledRef.current) return
+      activeCallsCalledRef.current = true
+
       try {
         const response = await fetch(`${backend_url}/api/dashboard/active-calls`)
         const data = await response.json()
@@ -60,7 +72,10 @@ function AnalyticsContent() {
     fetchActiveCalls()
   }, [])
 
-  const fetchConcernsBreakdown = async () => {
+  const fetchConcernsBreakdown = async (forceRefresh = false) => {
+    if (!forceRefresh && concernsCalledRef.current) return
+    if (!forceRefresh) concernsCalledRef.current = true
+
     setConcernsLoading(true)
     try {
       let url = `${backend_url}/api/dashboard/analytics/concerns-breakdown`
@@ -80,7 +95,10 @@ function AnalyticsContent() {
     }
   }
 
-  const fetchRefundItems = async () => {
+  const fetchRefundItems = async (forceRefresh = false) => {
+    if (!forceRefresh && refundsCalledRef.current) return
+    if (!forceRefresh) refundsCalledRef.current = true
+
     setRefundLoading(true)
     try {
       let url = `${backend_url}/api/dashboard/analytics/refund-items?limit=20&min_count=1`
@@ -117,11 +135,11 @@ function AnalyticsContent() {
     return (
       <div className="flex h-screen bg-background">
         <Sidebar />
-        <div className="flex-1 flex items-center justify-center">
-          <div className="text-center">
-            <RefreshCw className="w-8 h-8 animate-spin mx-auto mb-4 text-primary" />
-            <p className="text-muted-foreground">Loading analytics...</p>
-          </div>
+        <div className="flex-1 flex flex-col overflow-hidden">
+          <Header title="Analytics Dashboard" subtitle="Real-time voice agent performance metrics" />
+          <main className="flex-1 overflow-y-auto p-8">
+            <AnalyticsSkeleton />
+          </main>
         </div>
       </div>
     )
@@ -140,7 +158,7 @@ function AnalyticsContent() {
           <VoiceMetrics stats={stats} />
           <SentimentAnalysis stats={stats} />
           <ConcernsBreakdown
-            onFetch={fetchConcernsBreakdown}
+            onFetch={() => fetchConcernsBreakdown(true)}
             concernsData={concernsData}
             concernsLoading={concernsLoading}
             concernsStartDate={concernsStartDate}
@@ -149,7 +167,7 @@ function AnalyticsContent() {
             setConcernsEndDate={setConcernsEndDate}
           />
           <RefundItems
-            onFetch={fetchRefundItems}
+            onFetch={() => fetchRefundItems(true)}
             refundItems={refundItems}
             refundLoading={refundLoading}
             startDate={startDate}
