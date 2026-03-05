@@ -54,21 +54,21 @@ function AnalyticsContent() {
     fetchStats()
   }, [])
 
-  useEffect(() => {
-    const fetchActiveCalls = async () => {
-      if (activeCallsCalledRef.current) return
-      activeCallsCalledRef.current = true
+  const fetchActiveCalls = async (forceRefresh = false) => {
+    if (!forceRefresh && activeCallsCalledRef.current) return
+    if (!forceRefresh) activeCallsCalledRef.current = true
 
-      try {
-        const response = await fetch(`${backend_url}/api/dashboard/active-calls`)
-        const data = await response.json()
-        setActiveCalls(data.count || 0)
-        setActiveCallsData(data.active_calls || [])
-      } catch (error) {
-        console.error("Error fetching active calls:", error)
-      }
+    try {
+      const response = await fetch(`${backend_url}/api/dashboard/active-calls`)
+      const data = await response.json()
+      setActiveCalls(data.count || 0)
+      setActiveCallsData(data.active_calls || [])
+    } catch (error) {
+      console.error("Error fetching active calls:", error)
     }
+  }
 
+  useEffect(() => {
     fetchActiveCalls()
   }, [])
 
@@ -153,7 +153,11 @@ function AnalyticsContent() {
         <Header title="Analytics Dashboard" subtitle="Real-time voice agent performance metrics" />
 
         <main className="flex-1 overflow-y-auto p-8">
-          <HeroStatsGrid activeCalls={activeCalls} stats={stats} />
+          <HeroStatsGrid
+            activeCalls={activeCalls}
+            stats={stats}
+            onRefreshActiveCalls={() => fetchActiveCalls(true)}
+          />
           <ChartsRow activeCalls={activeCalls} stats={stats} />
           <VoiceMetrics stats={stats} />
           <SentimentAnalysis stats={stats} />
