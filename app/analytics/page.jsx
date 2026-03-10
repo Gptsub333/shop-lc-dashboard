@@ -12,6 +12,7 @@ import VoiceMetrics from "@/components/VoiceMetrics"
 import SentimentAnalysis from "@/components/SentimentAnalysis"
 import ConcernsBreakdown from "@/components/ConcernsBreakdown"
 import RefundItems from "@/components/RefundItems"
+import AISummary from "@/components/AISummary"
 
 const backend_url = process.env.NEXT_PUBLIC_API_URL
 
@@ -28,6 +29,10 @@ function AnalyticsContent() {
   const [refundLoading, setRefundLoading] = useState(false)
   const [startDate, setStartDate] = useState("")
   const [endDate, setEndDate] = useState("")
+  const [aiSummaryData, setAiSummaryData] = useState(null)
+  const [aiSummaryLoading, setAiSummaryLoading] = useState(false)
+  const [aiStartDate, setAiStartDate] = useState("")
+  const [aiEndDate, setAiEndDate] = useState("")
 
   // Refs to track if APIs have been called
   const statsCalledRef = useRef(false)
@@ -115,6 +120,43 @@ function AnalyticsContent() {
     }
   }
 
+  const getCSTDateString = (daysOffset = 0) => {
+    const now = new Date()
+    const cstString = now.toLocaleString("en-US", { timeZone: "America/Chicago" })
+    const cstDate = new Date(cstString)
+    cstDate.setDate(cstDate.getDate() + daysOffset)
+    const year = cstDate.getFullYear()
+    const month = String(cstDate.getMonth() + 1).padStart(2, "0")
+    const day = String(cstDate.getDate()).padStart(2, "0")
+    return `${year}-${month}-${day}`
+  }
+
+  const fetchAISummary = async () => {
+    let start = aiStartDate
+    let end = aiEndDate
+
+    // Default to yesterday (CST) when no range is selected
+    if (!start || !end) {
+      const yesterday = getCSTDateString(-1)
+      start = yesterday
+      end = yesterday
+      setAiStartDate(yesterday)
+      setAiEndDate(yesterday)
+    }
+
+    setAiSummaryLoading(true)
+    try {
+      const url = `${backend_url}/api/dashboard/ai-summary?start_date=${start}&end_date=${end}`
+      const response = await fetch(url)
+      const data = await response.json()
+      setAiSummaryData(data)
+    } catch (error) {
+      console.error("Error fetching AI summary:", error)
+    } finally {
+      setAiSummaryLoading(false)
+    }
+  }
+
   const formatDate = (dateString) => {
     if (!dateString) return "N/A"
     const date = new Date(dateString)
@@ -129,6 +171,7 @@ function AnalyticsContent() {
   useEffect(() => {
     fetchConcernsBreakdown()
     fetchRefundItems()
+    fetchAISummary()
   }, [])
 
   if (loading) {
@@ -170,7 +213,7 @@ function AnalyticsContent() {
             concernsEndDate={concernsEndDate}
             setConcernsEndDate={setConcernsEndDate}
           />
-          <RefundItems
+          {/* <RefundItems
             onFetch={() => fetchRefundItems(true)}
             refundItems={refundItems}
             refundLoading={refundLoading}
@@ -179,6 +222,15 @@ function AnalyticsContent() {
             endDate={endDate}
             setEndDate={setEndDate}
             formatDate={formatDate}
+          /> */}
+          <AISummary
+            onFetch={fetchAISummary}
+            aiSummaryData={aiSummaryData}
+            aiSummaryLoading={aiSummaryLoading}
+            startDate={aiStartDate}
+            setStartDate={setAiStartDate}
+            endDate={aiEndDate}
+            setEndDate={setAiEndDate}
           />
         </main>
       </div>

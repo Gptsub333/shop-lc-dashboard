@@ -1,6 +1,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Users } from "lucide-react"
-import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from "recharts"
+import Pie3DChart from "./Pie3DChart"
 
 const SENTIMENT_COLORS = {
     positive: "#22c55e",
@@ -9,47 +9,19 @@ const SENTIMENT_COLORS = {
 }
 
 export default function SentimentAnalysis({ stats }) {
-    const sentimentData = stats?.sentiment_distribution ? [
-        {
-            name: "Positive",
-            value: stats.sentiment_distribution.positive.count,
-            percentage: stats.sentiment_distribution.positive.percentage,
-            fill: SENTIMENT_COLORS.positive
-        },
-        {
-            name: "Neutral",
-            value: stats.sentiment_distribution.neutral.count,
-            percentage: stats.sentiment_distribution.neutral.percentage,
-            fill: SENTIMENT_COLORS.neutral
-        },
-        {
-            name: "Negative",
-            value: stats.sentiment_distribution.negative.count,
-            percentage: stats.sentiment_distribution.negative.percentage,
-            fill: SENTIMENT_COLORS.negative
-        }
-    ] : []
+    const sentimentData = stats?.sentiment_distribution
+        ? [
+            { name: "Positive", value: stats.sentiment_distribution.positive.count, fill: SENTIMENT_COLORS.positive },
+            { name: "Neutral", value: stats.sentiment_distribution.neutral.count, fill: SENTIMENT_COLORS.neutral },
+            { name: "Negative", value: stats.sentiment_distribution.negative.count, fill: SENTIMENT_COLORS.negative }
+        ].filter((d) => d.value > 0)
+        : []
 
-    const renderCustomLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percentage }) => {
-        if (percentage < 5) return null
-        const RADIAN = Math.PI / 180
-        const radius = innerRadius + (outerRadius - innerRadius) * 0.5
-        const x = cx + radius * Math.cos(-midAngle * RADIAN)
-        const y = cy + radius * Math.sin(-midAngle * RADIAN)
-
-        return (
-            <text
-                x={x}
-                y={y}
-                fill="white"
-                textAnchor={x > cx ? "start" : "end"}
-                dominantBaseline="central"
-                className="text-xs font-bold"
-            >
-                {`${percentage.toFixed(1)}%`}
-            </text>
-        )
-    }
+    const total = sentimentData.reduce((s, d) => s + d.value, 0)
+    const legendItems = sentimentData.map((d) => ({
+        ...d,
+        pct: total > 0 ? (d.value / total) * 100 : 0
+    }))
 
     return (
         <Card className="mb-8 bg-gradient-to-br from-green-500/5 via-slate-500/5 to-red-500/5 border-2 border-primary/20">
@@ -66,45 +38,26 @@ export default function SentimentAnalysis({ stats }) {
                 {stats?.sentiment_distribution?.total_analyzed > 0 ? (
                     <div className="flex flex-col lg:flex-row items-center gap-8">
                         <div className="flex-1 w-full">
-                            <ResponsiveContainer width="100%" height={350}>
-                                <PieChart>
-                                    <Pie
-                                        data={sentimentData}
-                                        cx="50%"
-                                        cy="50%"
-                                        labelLine={false}
-                                        label={renderCustomLabel}
-                                        outerRadius={120}
-                                        fill="#8884d8"
-                                        dataKey="value"
-                                        animationBegin={0}
-                                        animationDuration={800}
-                                    >
-                                        {sentimentData.map((entry, index) => (
-                                            <Cell key={`cell-${index}`} fill={entry.fill} />
+                            {sentimentData.length > 0 ? (
+                                <>
+                                    <Pie3DChart data={sentimentData} height={320} />
+                                    <div className="flex justify-center gap-6 mt-4 flex-wrap">
+                                        {legendItems.map((item) => (
+                                            <div key={item.name} className="flex items-center gap-2">
+                                                <span
+                                                    className="inline-block w-3 h-3 rounded-sm flex-shrink-0"
+                                                    style={{ backgroundColor: item.fill }}
+                                                />
+                                                <span className="text-sm text-muted-foreground">{item.name}</span>
+                                                <span className="text-sm font-semibold text-foreground">{item.pct.toFixed(1)}%</span>
+                                                <span className="text-sm font-medium text-muted-foreground">({item.value})</span>
+                                            </div>
                                         ))}
-                                    </Pie>
-                                    <Tooltip
-                                        content={({ active, payload }) => {
-                                            if (active && payload && payload.length) {
-                                                const data = payload[0].payload
-                                                return (
-                                                    <div className="bg-background border border-border rounded-lg p-3 shadow-lg">
-                                                        <p className="font-semibold text-sm mb-1">{data.name} Experience</p>
-                                                        <p className="font-bold" style={{ color: data.fill }}>
-                                                            Count: {data.value}
-                                                        </p>
-                                                        <p className="text-muted-foreground text-xs">
-                                                            {data.percentage.toFixed(1)}% of conversations
-                                                        </p>
-                                                    </div>
-                                                )
-                                            }
-                                            return null
-                                        }}
-                                    />
-                                </PieChart>
-                            </ResponsiveContainer>
+                                    </div>
+                                </>
+                            ) : (
+                                <div className="text-center py-12 text-muted-foreground">No sentiment distribution data</div>
+                            )}
                         </div>
                         <div className="flex-1 grid grid-cols-1 gap-4 w-full">
                             <div className="p-4 rounded-lg border-2 border-green-500/40 bg-green-500/10">
