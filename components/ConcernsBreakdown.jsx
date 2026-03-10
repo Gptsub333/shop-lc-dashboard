@@ -2,7 +2,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { MessageSquare, RefreshCw, Phone, AlertTriangle, Activity, BarChart3, PieChart as PieChartIcon } from "lucide-react"
-import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from "recharts"
+import Pie3DChart from "./Pie3DChart"
 import ConcernsSkeleton from "./ConcernsSkeleton"
 
 const COLORS = ["#ef4444", "#f59e0b", "#eab308", "#84cc16", "#22c55e", "#14b8a6", "#06b6d4", "#3b82f6", "#6366f1", "#8b5cf6"]
@@ -52,27 +52,6 @@ export default function ConcernsBreakdown({ onFetch, concernsData, concernsLoadi
             percentage: totalConcerns > 0 ? (item.value / totalConcerns) * 100 : 0
         }))
     })() : []
-
-    const renderCustomLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percentage }) => {
-        if (percentage < 5) return null
-        const RADIAN = Math.PI / 180
-        const radius = innerRadius + (outerRadius - innerRadius) * 0.5
-        const x = cx + radius * Math.cos(-midAngle * RADIAN)
-        const y = cy + radius * Math.sin(-midAngle * RADIAN)
-
-        return (
-            <text
-                x={x}
-                y={y}
-                fill="white"
-                textAnchor={x > cx ? "start" : "end"}
-                dominantBaseline="central"
-                className="text-xs font-bold"
-            >
-                {`${percentage.toFixed(1)}%`}
-            </text>
-        )
-    }
 
     return (
         <Card className="mb-8 border-2 border-primary/20">
@@ -153,43 +132,23 @@ export default function ConcernsBreakdown({ onFetch, concernsData, concernsLoadi
                                 {summaryData.length > 0 ? (
                                     <div className="flex flex-col lg:flex-row items-center gap-8">
                                         <div className="flex-1 w-full">
-                                            <ResponsiveContainer width="100%" height={350}>
-                                                <PieChart>
-                                                    <Pie
-                                                        data={summaryData}
-                                                        cx="50%"
-                                                        cy="50%"
-                                                        labelLine={false}
-                                                        label={renderCustomLabel}
-                                                        outerRadius={120}
-                                                        fill="#8884d8"
-                                                        dataKey="value"
-                                                        animationBegin={0}
-                                                        animationDuration={800}
-                                                    >
-                                                        {summaryData.map((entry, index) => (
-                                                            <Cell key={`cell-${index}`} fill={entry.fill} />
-                                                        ))}
-                                                    </Pie>
-                                                    <Tooltip
-                                                        content={({ active, payload }) => {
-                                                            if (active && payload && payload.length) {
-                                                                const data = payload[0].payload
-                                                                return (
-                                                                    <div className="bg-background border border-border rounded-lg p-3 shadow-lg">
-                                                                        <p className="font-semibold text-sm mb-1">{data.name}</p>
-                                                                        <p className="text-primary font-bold">Count: {data.value}</p>
-                                                                        <p className="text-muted-foreground text-xs">
-                                                                            {data.percentage.toFixed(1)}% of total
-                                                                        </p>
-                                                                    </div>
-                                                                )
-                                                            }
-                                                            return null
-                                                        }}
-                                                    />
-                                                </PieChart>
-                                            </ResponsiveContainer>
+                                            <Pie3DChart
+                                                data={summaryData.map((d) => ({ name: d.name, value: d.value, fill: d.fill }))}
+                                                height={320}
+                                            />
+                                            <div className="flex justify-center gap-6 mt-4 flex-wrap">
+                                                {summaryData.map((item) => (
+                                                    <div key={item.name} className="flex items-center gap-2">
+                                                        <span
+                                                            className="inline-block w-3 h-3 rounded-sm flex-shrink-0"
+                                                            style={{ backgroundColor: item.fill }}
+                                                        />
+                                                        <span className="text-sm text-muted-foreground">{item.name}</span>
+                                                        <span className="text-sm font-semibold text-foreground">{item.percentage.toFixed(1)}%</span>
+                                                        <span className="text-sm font-medium text-muted-foreground">({item.value})</span>
+                                                    </div>
+                                                ))}
+                                            </div>
                                         </div>
                                         <div className="flex-1 grid grid-cols-2 gap-4">
                                             {summaryData.map((item, index) => (
@@ -270,10 +229,21 @@ function CategoryPieChart({ title, icon, color, total, percentage, data }) {
         purple: "text-purple-500 border-purple-500/20"
     }[color]
 
+    const pieData = data.map((d, index) => ({
+        name: d.name,
+        value: d.value,
+        fill: COLORS[index % COLORS.length]
+    }))
+    const totalVal = pieData.reduce((s, d) => s + d.value, 0)
+    const legendItems = pieData.map((d) => ({
+        ...d,
+        pct: totalVal > 0 ? (d.value / totalVal) * 100 : 0
+    }))
+
     return (
-        <Card className={colorClass.split(' ')[1]}>
+        <Card className={colorClass.split(" ")[1]}>
             <CardHeader>
-                <CardTitle className={`flex items-center gap-2 ${colorClass.split(' ')[0]}`}>
+                <CardTitle className={`flex items-center gap-2 ${colorClass.split(" ")[0]}`}>
                     {icon}
                     {title}
                 </CardTitle>
@@ -283,61 +253,22 @@ function CategoryPieChart({ title, icon, color, total, percentage, data }) {
             </CardHeader>
             <CardContent>
                 {data.length > 0 ? (
-                    <ResponsiveContainer width="100%" height={300}>
-                        <PieChart>
-                            <Pie
-                                data={data}
-                                cx="50%"
-                                cy="50%"
-                                labelLine={false}
-                                outerRadius={100}
-                                fill="#8884d8"
-                                dataKey="value"
-                                animationBegin={0}
-                                animationDuration={800}
-                            >
-                                {data.map((entry, index) => (
-                                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                                ))}
-                            </Pie>
-                            <Tooltip
-                                content={({ active, payload }) => {
-                                    if (active && payload && payload.length) {
-                                        const data = payload[0].payload
-                                        return (
-                                            <div className="bg-background border border-border rounded-lg p-3 shadow-lg max-w-xs">
-                                                <p className="font-semibold text-sm mb-1">{data.name}</p>
-                                                <p className={colorClass.split(' ')[0] + " font-bold"}>Count: {data.value}</p>
-                                                <p className="text-muted-foreground text-xs">
-                                                    {data.percentage.toFixed(1)}% of category
-                                                </p>
-                                            </div>
-                                        )
-                                    }
-                                    return null
-                                }}
-                            />
-                            <Legend
-                                verticalAlign="bottom"
-                                height={36}
-                                content={({ payload }) => (
-                                    <div className="flex flex-wrap gap-2 justify-center mt-4">
-                                        {payload && payload.map((entry, index) => (
-                                            <div key={`legend-${index}`} className="flex items-center gap-1 text-xs">
-                                                <div
-                                                    className="w-3 h-3 rounded-full"
-                                                    style={{ backgroundColor: entry.color }}
-                                                />
-                                                <span className="text-muted-foreground truncate max-w-[120px]">
-                                                    {entry.value}
-                                                </span>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-                            />
-                        </PieChart>
-                    </ResponsiveContainer>
+                    <>
+                        <Pie3DChart data={pieData} height={280} />
+                        <div className="flex flex-wrap gap-3 justify-center mt-4">
+                            {legendItems.map((item) => (
+                                <div key={item.name} className="flex items-center gap-1.5 text-xs">
+                                    <span
+                                        className="inline-block w-2.5 h-2.5 rounded-sm flex-shrink-0"
+                                        style={{ backgroundColor: item.fill }}
+                                    />
+                                    <span className="text-muted-foreground truncate max-w-[100px]">{item.name}</span>
+                                    <span className="font-medium text-foreground">{item.pct.toFixed(1)}%</span>
+                                    <span className="text-muted-foreground">({item.value})</span>
+                                </div>
+                            ))}
+                        </div>
+                    </>
                 ) : (
                     <div className="text-center py-12 text-muted-foreground">
                         No {title.toLowerCase()} data
