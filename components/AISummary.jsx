@@ -1,7 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Brain, RefreshCw, TrendingUp, TrendingDown, Phone, PhoneForwarded, PhoneCall, CheckCircle2, XCircle, Users } from "lucide-react"
+import { Brain, RefreshCw, TrendingUp, TrendingDown, Phone, PhoneForwarded, PhoneCall, CheckCircle2, XCircle, Users, HelpCircle, BarChart2 } from "lucide-react"
 import {
     AreaChart,
     Area,
@@ -218,7 +218,7 @@ export default function AISummary({ onFetch, aiSummaryData, aiSummaryLoading, st
                         {totals && (
                             <div>
                                 <p className="text-sm font-semibold text-foreground mb-3">Call Handling Breakdown</p>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                                <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
                                     <StatCard
                                         icon={Phone}
                                         iconColor="bg-blue-500/10 text-blue-500"
@@ -252,7 +252,7 @@ export default function AISummary({ onFetch, aiSummaryData, aiSummaryLoading, st
                                     <StatCard
                                         icon={Brain}
                                         iconColor="bg-purple-500/10 text-purple-500"
-                                        label="AI Handled"
+                                        label="AI Deflected"
                                         value={totals.ai_handled_total.toLocaleString()}
                                         sub="no human needed"
                                     />
@@ -261,25 +261,37 @@ export default function AISummary({ onFetch, aiSummaryData, aiSummaryLoading, st
                                         iconColor="bg-emerald-500/10 text-emerald-500"
                                         label="AI Solved"
                                         value={totals.ai_solved_total.toLocaleString()}
-                                        pct={pcts?.ai_solved_of_ai_handled}
-                                        trend={pcts?.ai_solved_of_ai_handled ?? 0}
-                                        sub={`${pcts?.ai_solved_of_ai_handled ?? 0}% of AI handled`}
+                                        sub="total calls fully resolved by AI"
                                     />
                                     <StatCard
                                         icon={XCircle}
                                         iconColor="bg-red-500/10 text-red-500"
-                                        label="AI Failed"
+                                        label="AI Unresolved"
                                         value={totals.ai_failed_total.toLocaleString()}
                                         pct={pcts?.ai_failed_of_ai_handled}
                                         trend={-(pcts?.ai_failed_of_ai_handled ?? 0)}
-                                        sub={`${pcts?.ai_failed_of_ai_handled ?? 0}% of AI handled`}
+                                        sub={`${pcts?.ai_failed_of_ai_handled ?? 0}% unresolved out of AI deflected`}
+                                    />
+                                    <StatCard
+                                        icon={HelpCircle}
+                                        iconColor="bg-slate-500/10 text-slate-500"
+                                        label="Uncategorized Calls"
+                                        value={(totals.ai_handled_total - (totals.ai_solved_total + totals.ai_failed_total)).toLocaleString()}
+                                        sub="customer hang-up / no response"
                                     />
                                     <StatCard
                                         icon={TrendingUp}
                                         iconColor="bg-cyan-500/10 text-cyan-500"
-                                        label="AI Solved (Overall)"
-                                        value={`${pcts?.ai_solved_overall ?? 0}%`}
-                                        sub="of all calls resolved by AI"
+                                        label="AI Solved (Percentage)"
+                                        value={`${pcts?.ai_solved_of_ai_handled ?? 0}%`}
+                                        sub="AI resolution success rate"
+                                    />
+                                    <StatCard
+                                        icon={BarChart2}
+                                        iconColor="bg-violet-500/10 text-violet-500"
+                                        label="AI Deflected (Percentage)"
+                                        value={`${totals.total_calls > 0 ? ((totals.ai_handled_total / totals.total_calls) * 100).toFixed(1) : 0}%`}
+                                        sub="AI deflected calls out of total"
                                     />
                                 </div>
                             </div>
@@ -293,7 +305,7 @@ export default function AISummary({ onFetch, aiSummaryData, aiSummaryLoading, st
                                     <table className="w-full text-sm">
                                         <thead className="bg-muted/50">
                                             <tr>
-                                                {["Date", "Total", "Transferred", "AI Handled", "AI Solved", "AI Failed", "Solved %"].map((h) => (
+                                                {["Date", "Total", "Transferred", "User Requested", "AI Initiated", "AI Deflected", "AI Solved", "AI Unresolved", "Solved %"].map((h) => (
                                                     <th key={h} className="text-left py-3 px-4 text-xs font-semibold text-muted-foreground whitespace-nowrap">{h}</th>
                                                 ))}
                                             </tr>
@@ -306,6 +318,14 @@ export default function AISummary({ onFetch, aiSummaryData, aiSummaryLoading, st
                                                     <td className="py-3 px-4">
                                                         <span className="text-amber-500 font-medium">{day.transferred_total}</span>
                                                         <span className="text-xs text-muted-foreground ml-1">({day.percentages.transferred_overall}%)</span>
+                                                    </td>
+                                                    <td className="py-3 px-4">
+                                                        <span className="text-orange-500 font-medium">{day.user_requested_transfer_total}</span>
+                                                        <span className="text-xs text-muted-foreground ml-1">({day.percentages.user_requested_transfer_overall}%)</span>
+                                                    </td>
+                                                    <td className="py-3 px-4">
+                                                        <span className="text-rose-500 font-medium">{day.ai_initiated_transfer_total}</span>
+                                                        <span className="text-xs text-muted-foreground ml-1">({day.percentages.ai_initiated_transfer_overall}%)</span>
                                                     </td>
                                                     <td className="py-3 px-4">
                                                         <span className="text-purple-500 font-medium">{day.ai_handled_total}</span>

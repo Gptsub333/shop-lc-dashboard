@@ -1,5 +1,5 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Timer, Phone, Activity, Clock } from "lucide-react"
+import { Timer, Activity, Clock } from "lucide-react"
 
 export default function VoiceMetrics({ stats }) {
     return (
@@ -7,7 +7,7 @@ export default function VoiceMetrics({ stats }) {
             <Card className="bg-gradient-to-br from-blue-500/5 to-blue-500/10 border-blue-500/20">
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2">
-                        <Timer className="w-5 h-5 text-blue-500" />
+                        <Activity className="w-5 h-5 text-blue-500" />
                         Hours Spoken Today
                     </CardTitle>
                     <CardDescription>Total agent talk time today</CardDescription>
@@ -30,7 +30,7 @@ export default function VoiceMetrics({ stats }) {
             <Card className="bg-gradient-to-br from-purple-500/5 to-purple-500/10 border-purple-500/20">
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2">
-                        <Phone className="w-5 h-5 text-purple-500" />
+                        <Timer className="w-5 h-5 text-purple-500" />
                         Total Hours Spoken
                     </CardTitle>
                     <CardDescription>Lifetime agent talk time</CardDescription>

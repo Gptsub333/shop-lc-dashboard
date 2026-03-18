@@ -136,19 +136,6 @@ export default function ConcernsBreakdown({ onFetch, concernsData, concernsLoadi
                                                 data={summaryData.map((d) => ({ name: d.name, value: d.value, fill: d.fill }))}
                                                 height={320}
                                             />
-                                            <div className="flex justify-center gap-6 mt-4 flex-wrap">
-                                                {summaryData.map((item) => (
-                                                    <div key={item.name} className="flex items-center gap-2">
-                                                        <span
-                                                            className="inline-block w-3 h-3 rounded-sm flex-shrink-0"
-                                                            style={{ backgroundColor: item.fill }}
-                                                        />
-                                                        <span className="text-sm text-muted-foreground">{item.name}</span>
-                                                        <span className="text-sm font-semibold text-foreground">{item.percentage.toFixed(1)}%</span>
-                                                        <span className="text-sm font-medium text-muted-foreground">({item.value})</span>
-                                                    </div>
-                                                ))}
-                                            </div>
                                         </div>
                                         <div className="flex-1 grid grid-cols-2 gap-4">
                                             {summaryData.map((item, index) => (
@@ -254,17 +241,22 @@ function CategoryPieChart({ title, icon, color, total, percentage, data }) {
             <CardContent>
                 {data.length > 0 ? (
                     <>
-                        <Pie3DChart data={pieData} height={280} />
-                        <div className="flex flex-wrap gap-3 justify-center mt-4">
+                        <Pie3DChart data={pieData} height={320} />
+                        <div className="mt-5 space-y-2 select-text">
                             {legendItems.map((item) => (
-                                <div key={item.name} className="flex items-center gap-1.5 text-xs">
+                                <div key={item.name} className="flex items-center gap-2 text-sm group">
                                     <span
-                                        className="inline-block w-2.5 h-2.5 rounded-sm flex-shrink-0"
+                                        className="inline-block w-3 h-3 rounded-sm flex-shrink-0"
                                         style={{ backgroundColor: item.fill }}
                                     />
-                                    <span className="text-muted-foreground truncate max-w-[100px]">{item.name}</span>
-                                    <span className="font-medium text-foreground">{item.pct.toFixed(1)}%</span>
-                                    <span className="text-muted-foreground">({item.value})</span>
+                                    <span className="text-foreground flex-1 leading-tight">{item.name}</span>
+                                    <span className="font-semibold text-foreground tabular-nums">{item.pct.toFixed(1)}%</span>
+                                    <span
+                                        className="font-bold tabular-nums px-1.5 py-0.5 rounded text-xs"
+                                        style={{ backgroundColor: item.fill + "22", color: item.fill }}
+                                    >
+                                        {item.value}
+                                    </span>
                                 </div>
                             ))}
                         </div>
