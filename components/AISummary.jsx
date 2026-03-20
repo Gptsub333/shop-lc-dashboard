@@ -1,7 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Brain, RefreshCw, TrendingUp, TrendingDown, Phone, PhoneForwarded, PhoneCall, CheckCircle2, XCircle, Users, HelpCircle, BarChart2, Download } from "lucide-react"
+import DatePickerYMD from "./DatePickerYMD"
 import {
     AreaChart,
     Area,
@@ -305,24 +305,8 @@ export default function AISummary({ onFetch, aiSummaryData, aiSummaryLoading, st
             <CardContent>
                 {/* ── Date range picker ─────────────────────────────────────── */}
                 <div className="flex flex-col sm:flex-row gap-4 mb-6 p-4 bg-muted/50 rounded-lg">
-                    <div className="flex-1">
-                        <label className="text-sm font-medium text-foreground mb-2 block">Start Date</label>
-                        <Input
-                            type="date"
-                            value={startDate}
-                            onChange={(e) => setStartDate(e.target.value)}
-                            className="w-full"
-                        />
-                    </div>
-                    <div className="flex-1">
-                        <label className="text-sm font-medium text-foreground mb-2 block">End Date</label>
-                        <Input
-                            type="date"
-                            value={endDate}
-                            onChange={(e) => setEndDate(e.target.value)}
-                            className="w-full"
-                        />
-                    </div>
+                    <DatePickerYMD label="Start Date" value={startDate} onChange={setStartDate} />
+                    <DatePickerYMD label="End Date" value={endDate} onChange={setEndDate} />
                     <div className="flex items-end">
                         <Button onClick={onFetch} disabled={aiSummaryLoading} className="w-full sm:w-auto">
                             {aiSummaryLoading ? "Loading..." : "Search"}

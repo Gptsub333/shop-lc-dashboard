@@ -1,7 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { MessageSquare, RefreshCw, Phone, AlertTriangle, Activity, BarChart3, PieChart as PieChartIcon } from "lucide-react"
+import DatePickerYMD from "./DatePickerYMD"
 import Pie3DChart from "./Pie3DChart"
 import ConcernsSkeleton from "./ConcernsSkeleton"
 
@@ -85,24 +85,8 @@ export default function ConcernsBreakdown({ onFetch, concernsData, concernsLoadi
             </CardHeader>
             <CardContent>
                 <div className="flex flex-col sm:flex-row gap-4 mb-6 p-4 bg-muted/50 rounded-lg">
-                    <div className="flex-1">
-                        <label className="text-sm font-medium text-foreground mb-2 block">Start Date</label>
-                        <Input
-                            type="date"
-                            value={concernsStartDate}
-                            onChange={(e) => setConcernsStartDate(e.target.value)}
-                            className="w-full"
-                        />
-                    </div>
-                    <div className="flex-1">
-                        <label className="text-sm font-medium text-foreground mb-2 block">End Date</label>
-                        <Input
-                            type="date"
-                            value={concernsEndDate}
-                            onChange={(e) => setConcernsEndDate(e.target.value)}
-                            className="w-full"
-                        />
-                    </div>
+                    <DatePickerYMD label="Start Date" value={concernsStartDate} onChange={setConcernsStartDate} />
+                    <DatePickerYMD label="End Date" value={concernsEndDate} onChange={setConcernsEndDate} />
                     <div className="flex items-end">
                         <Button onClick={onFetch} disabled={concernsLoading} className="w-full sm:w-auto">
                             {concernsLoading ? "Searching..." : "Search"}
