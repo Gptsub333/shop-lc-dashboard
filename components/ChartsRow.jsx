@@ -1,20 +1,28 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { BarChart3, PhoneIncoming } from "lucide-react"
-import {
-    BarChart,
-    Bar,
-    XAxis,
-    YAxis,
-    CartesianGrid,
-    Tooltip,
-    Cell,
-    ResponsiveContainer,
-} from "recharts"
+import { BarChart3, ShieldCheck, Clock } from "lucide-react"
 import Pie3DChart from "./Pie3DChart"
 
 const CALL_OVERVIEW_COLORS = {
     avaVoice: "#8b5cf6",
     transferred: "#3b82f6",
+}
+
+function parseDurationToMinutes(str) {
+    if (!str) return 0
+    const hours = str.match(/(\d+)h/)
+    const mins = str.match(/(\d+)m/)
+    const secs = str.match(/(\d+)s/)
+    return (hours ? parseInt(hours[1]) * 60 : 0) +
+        (mins ? parseInt(mins[1]) : 0) +
+        (secs ? parseInt(secs[1]) / 60 : 0)
+}
+
+function formatMinutes(totalMins) {
+    if (!totalMins || totalMins <= 0) return "—"
+    const h = Math.floor(totalMins / 60)
+    const m = Math.round(totalMins % 60)
+    if (h > 0) return `${h}h ${m}m`
+    return `${m}m`
 }
 
 export default function ChartsRow({ activeCalls, stats }) {
@@ -33,10 +41,17 @@ export default function ChartsRow({ activeCalls, stats }) {
         pct: totalToday > 0 ? (d.value / totalToday) * 100 : 0,
     }))
 
-    const routingData = [
-        { name: "Today", value: stats?.routed_calls_today || 0, fill: "#3b82f6" },
-        { name: "Lifetime", value: stats?.routed_calls_total || 0, fill: "#8b5cf6" },
-    ]
+    // ── Lifetime efficiency calculations (all unique, not shown elsewhere) ──
+    const totalCalls = stats?.total_calls ?? 0
+    const routedTotal = stats?.routed_calls_total ?? 0
+    const aiContainedLifetime = Math.max(0, totalCalls - routedTotal)
+    const containmentRate = totalCalls > 0 ? ((aiContainedLifetime / totalCalls) * 100).toFixed(1) : "0.0"
+
+    const avgMins = parseDurationToMinutes(stats?.average_call_duration)
+    const lifetimeSavedMins = Math.round(aiContainedLifetime * avgMins)
+    const lifetimeSavedStr = formatMinutes(lifetimeSavedMins)
+
+    const rateColor = { text: "text-emerald-500", light: "bg-emerald-500/10", border: "border-emerald-500/30", bar: "bg-emerald-500" }
 
     return (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
@@ -60,15 +75,9 @@ export default function ChartsRow({ activeCalls, stats }) {
                                             className="inline-block w-3 h-3 rounded-sm flex-shrink-0"
                                             style={{ backgroundColor: item.fill }}
                                         />
-                                        <span className="text-sm text-muted-foreground">
-                                            {item.name}
-                                        </span>
-                                        <span className="text-sm font-semibold text-foreground">
-                                            {item.pct.toFixed(1)}%
-                                        </span>
-                                        <span className="text-sm font-medium text-muted-foreground">
-                                            ({item.value})
-                                        </span>
+                                        <span className="text-sm text-muted-foreground">{item.name}</span>
+                                        <span className="text-sm font-semibold text-foreground">{item.pct.toFixed(1)}%</span>
+                                        <span className="text-sm font-medium text-muted-foreground">({item.value})</span>
                                     </div>
                                 ))}
                             </div>
@@ -81,47 +90,62 @@ export default function ChartsRow({ activeCalls, stats }) {
                 </CardContent>
             </Card>
 
-            {/* Routing Metrics Chart */}
+            {/* Lifetime AI Efficiency */}
             <Card>
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2">
-                        <PhoneIncoming className="w-5 h-5 text-primary" />
-                        Routing Metrics
+                        <ShieldCheck className="w-5 h-5 text-primary" />
+                        Lifetime AI Efficiency
                     </CardTitle>
-                    <CardDescription>Today vs lifetime routed calls</CardDescription>
+                    <CardDescription>Overall AI containment and agent time saved</CardDescription>
                 </CardHeader>
-                <CardContent>
-                    <div className="grid grid-cols-2 gap-4 mb-6">
-                        <div className="text-center p-4 bg-blue-500/10 rounded-lg">
-                            <p className="text-sm text-muted-foreground mb-1">Today</p>
-                            <p className="text-3xl font-bold text-blue-500">{stats?.routed_calls_today || 0}</p>
-                        </div>
-                        <div className="text-center p-4 bg-purple-500/10 rounded-lg">
-                            <p className="text-sm text-muted-foreground mb-1">Lifetime</p>
-                            <p className="text-3xl font-bold text-purple-500">
-                                {stats?.routed_calls_total?.toLocaleString() || 0}
+                <CardContent className="space-y-5">
+
+                    {/* Containment Rate – headline KPI */}
+                    <div className="flex items-center justify-between p-4 rounded-xl border border-border">
+                        <div>
+                            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-1">AI Containment Rate</p>
+                            <p className={`text-5xl font-black ${rateColor.text}`}>{containmentRate}%</p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                                {aiContainedLifetime.toLocaleString()} of {totalCalls.toLocaleString()} lifetime calls resolved without a human
                             </p>
                         </div>
+                        <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
+                            <ShieldCheck className={`w-7 h-7 ${rateColor.text}`} />
+                        </div>
                     </div>
-                    <ResponsiveContainer width="100%" height={200}>
-                        <BarChart data={routingData} layout="vertical">
-                            <CartesianGrid strokeDasharray="3 3" opacity={0.1} />
-                            <XAxis type="number" />
-                            <YAxis dataKey="name" type="category" width={80} />
-                            <Tooltip
-                                contentStyle={{
-                                    backgroundColor: "hsl(var(--background))",
-                                    border: "1px solid hsl(var(--border))",
-                                    borderRadius: "8px"
-                                }}
-                            />
-                            <Bar dataKey="value" radius={[0, 8, 8, 0]}>
-                                {routingData.map((entry, index) => (
-                                    <Cell key={`cell-${index}`} fill={entry.fill} />
-                                ))}
-                            </Bar>
-                        </BarChart>
-                    </ResponsiveContainer>
+
+                    {/* Containment progress bar */}
+                    <div>
+                        <div className="flex justify-between text-xs text-muted-foreground mb-1.5">
+                            <span>AI Contained</span>
+                            <span>Transferred to Human</span>
+                        </div>
+                        <div className="w-full h-3 rounded-full overflow-hidden flex bg-muted">
+                            <div className={`h-full ${rateColor.bar} transition-all`} style={{ width: `${containmentRate}%` }} />
+                            <div className="h-full bg-blue-500/60 transition-all" style={{ width: `${100 - parseFloat(containmentRate)}%` }} />
+                        </div>
+                        <div className="flex justify-between text-xs font-semibold mt-1">
+                            <span className={rateColor.text}>{aiContainedLifetime.toLocaleString()} calls</span>
+                            <span className="text-blue-500">{routedTotal.toLocaleString()} calls</span>
+                        </div>
+                    </div>
+
+                    {/* Agent Time Saved (lifetime) */}
+                    <div className="p-4 rounded-xl bg-muted/50 border border-border flex items-center justify-between">
+                        <div>
+                            <div className="flex items-center gap-2 mb-1">
+                                <Clock className="w-4 h-4 text-cyan-500" />
+                                <p className="text-xs font-medium text-muted-foreground">Agent Time Saved (Lifetime)</p>
+                            </div>
+                            <p className="text-3xl font-bold text-cyan-500">{lifetimeSavedStr}</p>
+                            <p className="text-xs text-muted-foreground mt-1">estimated hours saved by AI across all calls</p>
+                        </div>
+                        <div className="w-14 h-14 rounded-full bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center flex-shrink-0">
+                            <Clock className="w-6 h-6 text-cyan-500" />
+                        </div>
+                    </div>
+
                 </CardContent>
             </Card>
         </div>

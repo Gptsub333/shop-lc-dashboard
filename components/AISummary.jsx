@@ -1,7 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Brain, RefreshCw, TrendingUp, TrendingDown, Phone, PhoneForwarded, PhoneCall, CheckCircle2, XCircle, Users, HelpCircle, BarChart2 } from "lucide-react"
+import { Brain, RefreshCw, TrendingUp, TrendingDown, Phone, PhoneForwarded, PhoneCall, CheckCircle2, XCircle, Users, HelpCircle, BarChart2, Download } from "lucide-react"
 import {
     AreaChart,
     Area,
@@ -74,6 +74,190 @@ const CustomTooltip = ({ active, payload, label }) => {
     return null
 }
 
+async function downloadExcel(aiSummaryData) {
+    if (!aiSummaryData) return
+
+    const totals = aiSummaryData.totals
+    const pcts = totals?.percentages
+    const range = aiSummaryData.range
+    const rangeLabel = range ? `${range.start_date} to ${range.end_date}` : "Selected Range"
+    const fileName = `AI_Performance_${range?.start_date ?? "start"}_to_${range?.end_date ?? "end"}.xlsx`
+
+    const ExcelJS = (await import("exceljs")).default
+    const wb = new ExcelJS.Workbook()
+    wb.creator = "Shop LC Dashboard"
+
+    // ── Color palette matching the UI ─────────────────────────────────────
+    const C = {
+        titleBg:  "1E293B", titleFg:  "FFFFFF",
+        rangeBg:  "334155", headerBg: "475569",
+        blue:     "3B82F6", amber:    "F59E0B",
+        orange:   "F97316", rose:     "F43F5E",
+        purple:   "A855F7", emerald:  "10B981",
+        red:      "EF4444", slate:    "64748B",
+        cyan:     "06B6D4", violet:   "8B5CF6",
+        rowEven:  "FFFFFF", rowOdd:   "F1F5F9",
+        border:   "E2E8F0",
+    }
+
+    function argb(hex) { return "FF" + hex }
+
+    function applyTitleRow(row, text, spanCount, bg = C.titleBg, size = 14) {
+        row.height = 30
+        const cell = row.getCell(1)
+        cell.value = text
+        cell.font = { bold: true, color: { argb: argb(C.titleFg) }, size, name: "Calibri" }
+        cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: argb(bg) } }
+        cell.alignment = { vertical: "middle", horizontal: "center" }
+    }
+
+    function styleDataCell(cell, color, bold, bg) {
+        cell.font = { bold, color: { argb: argb(color) }, size: 11, name: "Calibri" }
+        cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: argb(bg) } }
+        cell.alignment = { vertical: "middle", horizontal: "left" }
+        cell.border = { bottom: { style: "thin", color: { argb: argb(C.border) } } }
+    }
+
+    // ── Sheet 1: Call Handling Breakdown ──────────────────────────────────
+    const ws1 = wb.addWorksheet("Call Handling Breakdown")
+    ws1.columns = [{ width: 34 }, { width: 20 }, { width: 36 }]
+
+    ws1.addRow(["", "", ""])
+    ws1.mergeCells("A1:C1")
+    applyTitleRow(ws1.getRow(1), "AI Performance Summary - Call Handling Breakdown", 3)
+
+    ws1.addRow(["", "", ""])
+    ws1.mergeCells("A2:C2")
+    applyTitleRow(ws1.getRow(2), `Date Range: ${rangeLabel}`, 3, C.rangeBg, 11)
+
+    ws1.addRow([])
+
+    const hdr1 = ws1.addRow(["Metric", "Value", "% of Total / Notes"])
+    hdr1.height = 24
+    hdr1.eachCell((cell) => {
+        cell.font = { bold: true, color: { argb: argb(C.titleFg) }, size: 11, name: "Calibri" }
+        cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: argb(C.headerBg) } }
+        cell.alignment = { vertical: "middle", horizontal: "left" }
+        cell.border = { bottom: { style: "medium", color: { argb: argb(C.titleBg) } } }
+    })
+
+    const uncategorized = totals
+        ? totals.ai_handled_total - (totals.ai_solved_total + totals.ai_failed_total)
+        : 0
+    const aiDeflectedPct =
+        totals?.total_calls > 0
+            ? `${((totals.ai_handled_total / totals.total_calls) * 100).toFixed(1)}%`
+            : "0%"
+
+    const breakdown = [
+        ["Total Calls",             totals?.total_calls ?? 0,                    "in selected range",                                     C.blue],
+        ["Transferred to Human",    totals?.transferred_total ?? 0,              `${pcts?.transferred_overall ?? 0}% of total`,           C.amber],
+        ["User Requested Transfer", totals?.user_requested_transfer_total ?? 0,  `${pcts?.user_requested_transfer_overall ?? 0}% of total`, C.orange],
+        ["AI Initiated Transfer",   totals?.ai_initiated_transfer_total ?? 0,    `${pcts?.ai_initiated_transfer_overall ?? 0}% of total`, C.rose],
+        ["AI Deflected",            totals?.ai_handled_total ?? 0,               `${aiDeflectedPct} of total`,                            C.purple],
+        ["AI Solved",               totals?.ai_solved_total ?? 0,                "total calls fully resolved by AI",                      C.emerald],
+        ["AI Unresolved",           totals?.ai_failed_total ?? 0,                `${pcts?.ai_failed_of_ai_handled ?? 0}% of AI deflected`, C.red],
+        ["Uncategorized Calls",     uncategorized,                               "customer hang-up / no response",                        C.slate],
+        ["AI Solved Rate",          `${pcts?.ai_solved_of_ai_handled ?? 0}%`,    "AI resolution success rate",                            C.cyan],
+        ["AI Deflected Rate",       aiDeflectedPct,                              "AI deflected out of total calls",                       C.violet],
+    ]
+
+    breakdown.forEach(([label, value, note, color], i) => {
+        const bg = i % 2 === 0 ? C.rowEven : C.rowOdd
+        const row = ws1.addRow([label, value, note])
+        row.height = 22
+        styleDataCell(row.getCell(1), "334155", false, bg)
+        styleDataCell(row.getCell(2), color, true, bg)
+        styleDataCell(row.getCell(3), "94A3B8", false, bg)
+    })
+
+    // ── Sheet 2: Daily Breakdown ──────────────────────────────────────────
+    const daily = aiSummaryData.daily || []
+    const ws2 = wb.addWorksheet("Daily Breakdown")
+    ws2.columns = [
+        { width: 14 }, { width: 14 }, { width: 24 },
+        { width: 19 }, { width: 12 }, { width: 17 }, { width: 12 },
+        { width: 15 }, { width: 13 }, { width: 15 }, { width: 11 },
+    ]
+
+    ws2.addRow(new Array(11).fill(""))
+    ws2.mergeCells("A1:K1")
+    applyTitleRow(ws2.getRow(1), "AI Performance Summary — Daily Breakdown", 11)
+
+    ws2.addRow(new Array(11).fill(""))
+    ws2.mergeCells("A2:K2")
+    applyTitleRow(ws2.getRow(2), `Date Range: ${rangeLabel}`, 11, C.rangeBg, 11)
+
+    ws2.addRow([])
+
+    const dailyCols = [
+        { label: "Date",                 color: "334155" },
+        { label: "Total Calls",          color: C.blue    },
+        { label: "Transferred to Human", color: C.amber   },
+        { label: "User Requested",       color: C.orange  },
+        { label: "User Req %",           color: C.orange  },
+        { label: "AI Initiated",         color: C.rose    },
+        { label: "AI Init %",            color: C.rose    },
+        { label: "AI Deflected",         color: C.purple  },
+        { label: "AI Solved",            color: C.emerald },
+        { label: "AI Unresolved",        color: C.red     },
+        { label: "Solved %",             color: C.cyan    },
+    ]
+
+    const hdr2 = ws2.addRow(dailyCols.map((c) => c.label))
+    hdr2.height = 24
+    dailyCols.forEach((col, ci) => {
+        const cell = hdr2.getCell(ci + 1)
+        cell.font = { bold: true, color: { argb: argb(C.titleFg) }, size: 11, name: "Calibri" }
+        cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: argb(C.titleBg) } }
+        cell.alignment = { vertical: "middle", horizontal: "left" }
+        cell.border = { bottom: { style: "medium", color: { argb: argb(col.color) } } }
+    })
+
+    daily.forEach((day, i) => {
+        const solvedPct = day.percentages?.ai_solved_of_ai_handled ?? 0
+        const solvedColor = solvedPct >= 50 ? C.emerald : C.amber
+        const bg = i % 2 === 0 ? C.rowEven : C.rowOdd
+
+        const values = [
+            day.date,
+            day.total_calls,
+            day.transferred_total,
+            day.user_requested_transfer_total,
+            `${day.percentages?.user_requested_transfer_overall ?? 0}%`,
+            day.ai_initiated_transfer_total,
+            `${day.percentages?.ai_initiated_transfer_overall ?? 0}%`,
+            day.ai_handled_total,
+            day.ai_solved_total,
+            day.ai_failed_total,
+            `${solvedPct}%`,
+        ]
+
+        const colColors = [
+            "334155", C.blue, C.amber,
+            C.orange, C.orange, C.rose, C.rose,
+            C.purple, C.emerald, C.red, solvedColor,
+        ]
+
+        const row = ws2.addRow(values)
+        row.height = 20
+        values.forEach((_, ci) => {
+            styleDataCell(row.getCell(ci + 1), colColors[ci], ci === 0, bg)
+        })
+    })
+
+    const buffer = await wb.xlsx.writeBuffer()
+    const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = fileName
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+}
+
 export default function AISummary({ onFetch, aiSummaryData, aiSummaryLoading, startDate, setStartDate, endDate, setEndDate }) {
     const chartData = buildHourlyChartData(aiSummaryData)
     const totals = aiSummaryData?.totals
@@ -100,10 +284,21 @@ export default function AISummary({ onFetch, aiSummaryData, aiSummaryLoading, st
                             )}
                         </CardDescription>
                     </div>
-                    <Button variant="outline" size="sm" onClick={onFetch} disabled={aiSummaryLoading}>
-                        <RefreshCw className={`w-4 h-4 mr-2 ${aiSummaryLoading ? "animate-spin" : ""}`} />
-                        Refresh
-                    </Button>
+                    <div className="flex items-center gap-2">
+                        <Button variant="outline" size="sm" onClick={onFetch} disabled={aiSummaryLoading}>
+                            <RefreshCw className={`w-4 h-4 mr-2 ${aiSummaryLoading ? "animate-spin" : ""}`} />
+                            Refresh
+                        </Button>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => downloadExcel(aiSummaryData)}
+                            disabled={!aiSummaryData || aiSummaryLoading}
+                        >
+                            <Download className="w-4 h-4 mr-2" />
+                            Download
+                        </Button>
+                    </div>
                 </div>
             </CardHeader>
 

@@ -8,17 +8,17 @@ export default function VoiceMetrics({ stats }) {
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                         <Activity className="w-5 h-5 text-blue-500" />
-                        Hours Spoken Today
+                        Total Calls
                     </CardTitle>
-                    <CardDescription>Total agent talk time today</CardDescription>
+                    <CardDescription>Total call volume</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <div className="flex items-center justify-between">
                         <div>
                             <p className="text-5xl font-bold text-blue-500 mb-2">
-                                {stats?.hours_talked_today || "0h 0m"}
+                                {(stats?.total_calls ?? 0).toLocaleString()}
                             </p>
-                            <p className="text-sm text-muted-foreground">Active conversation time</p>
+                            <p className="text-sm text-muted-foreground">All time</p>
                         </div>
                         <div className="w-24 h-24 rounded-full bg-blue-500/20 flex items-center justify-center">
                             <Activity className="w-12 h-12 text-blue-500" />
