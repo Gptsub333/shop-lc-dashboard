@@ -64,14 +64,14 @@ export default function HeroStatsGrid({ activeCalls, stats, onRefreshActiveCalls
                 </CardContent>
             </Card>
 
-            {/* Total Calls */}
+            {/* Hours Spoken Today */}
             <Card className="relative overflow-hidden border-l-4 border-l-purple-500">
                 <CardContent className="p-6">
                     <div className="flex items-center justify-between">
                         <div>
-                            <p className="text-sm font-medium text-muted-foreground mb-1">Total Calls</p>
-                            <p className="text-3xl font-bold text-foreground">{stats?.total_calls || 0}</p>
-                            <p className="text-xs text-muted-foreground mt-2">All time</p>
+                            <p className="text-sm font-medium text-muted-foreground mb-1">Hours Spoken Today</p>
+                            <p className="text-3xl font-bold text-foreground">{stats?.hours_talked_today || "0h 0m"}</p>
+                            <p className="text-xs text-muted-foreground mt-2">Active conversation time</p>
                         </div>
                         <div className="w-14 h-14 rounded-full bg-purple-500/10 flex items-center justify-center">
                             <Activity className="w-7 h-7 text-purple-500" />

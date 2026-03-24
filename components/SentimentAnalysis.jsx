@@ -17,12 +17,6 @@ export default function SentimentAnalysis({ stats }) {
         ].filter((d) => d.value > 0)
         : []
 
-    const total = sentimentData.reduce((s, d) => s + d.value, 0)
-    const legendItems = sentimentData.map((d) => ({
-        ...d,
-        pct: total > 0 ? (d.value / total) * 100 : 0
-    }))
-
     return (
         <Card className="mb-8 bg-gradient-to-br from-green-500/5 via-slate-500/5 to-red-500/5 border-2 border-primary/20">
             <CardHeader>
@@ -39,22 +33,7 @@ export default function SentimentAnalysis({ stats }) {
                     <div className="flex flex-col lg:flex-row items-center gap-8">
                         <div className="flex-1 w-full">
                             {sentimentData.length > 0 ? (
-                                <>
-                                    <Pie3DChart data={sentimentData} height={320} />
-                                    <div className="flex justify-center gap-6 mt-4 flex-wrap">
-                                        {legendItems.map((item) => (
-                                            <div key={item.name} className="flex items-center gap-2">
-                                                <span
-                                                    className="inline-block w-3 h-3 rounded-sm flex-shrink-0"
-                                                    style={{ backgroundColor: item.fill }}
-                                                />
-                                                <span className="text-sm text-muted-foreground">{item.name}</span>
-                                                <span className="text-sm font-semibold text-foreground">{item.pct.toFixed(1)}%</span>
-                                                <span className="text-sm font-medium text-muted-foreground">({item.value})</span>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </>
+                                <Pie3DChart data={sentimentData} height={320} />
                             ) : (
                                 <div className="text-center py-12 text-muted-foreground">No sentiment distribution data</div>
                             )}

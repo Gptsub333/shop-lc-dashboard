@@ -1,7 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { MessageSquare, RefreshCw, Phone, AlertTriangle, Activity, BarChart3, PieChart as PieChartIcon } from "lucide-react"
+import DatePickerYMD from "./DatePickerYMD"
 import Pie3DChart from "./Pie3DChart"
 import ConcernsSkeleton from "./ConcernsSkeleton"
 
@@ -85,24 +85,8 @@ export default function ConcernsBreakdown({ onFetch, concernsData, concernsLoadi
             </CardHeader>
             <CardContent>
                 <div className="flex flex-col sm:flex-row gap-4 mb-6 p-4 bg-muted/50 rounded-lg">
-                    <div className="flex-1">
-                        <label className="text-sm font-medium text-foreground mb-2 block">Start Date</label>
-                        <Input
-                            type="date"
-                            value={concernsStartDate}
-                            onChange={(e) => setConcernsStartDate(e.target.value)}
-                            className="w-full"
-                        />
-                    </div>
-                    <div className="flex-1">
-                        <label className="text-sm font-medium text-foreground mb-2 block">End Date</label>
-                        <Input
-                            type="date"
-                            value={concernsEndDate}
-                            onChange={(e) => setConcernsEndDate(e.target.value)}
-                            className="w-full"
-                        />
-                    </div>
+                    <DatePickerYMD label="Start Date" value={concernsStartDate} onChange={setConcernsStartDate} />
+                    <DatePickerYMD label="End Date" value={concernsEndDate} onChange={setConcernsEndDate} />
                     <div className="flex items-end">
                         <Button onClick={onFetch} disabled={concernsLoading} className="w-full sm:w-auto">
                             {concernsLoading ? "Searching..." : "Search"}
@@ -135,20 +119,8 @@ export default function ConcernsBreakdown({ onFetch, concernsData, concernsLoadi
                                             <Pie3DChart
                                                 data={summaryData.map((d) => ({ name: d.name, value: d.value, fill: d.fill }))}
                                                 height={320}
+                                                showPercentLabels={false}
                                             />
-                                            <div className="flex justify-center gap-6 mt-4 flex-wrap">
-                                                {summaryData.map((item) => (
-                                                    <div key={item.name} className="flex items-center gap-2">
-                                                        <span
-                                                            className="inline-block w-3 h-3 rounded-sm flex-shrink-0"
-                                                            style={{ backgroundColor: item.fill }}
-                                                        />
-                                                        <span className="text-sm text-muted-foreground">{item.name}</span>
-                                                        <span className="text-sm font-semibold text-foreground">{item.percentage.toFixed(1)}%</span>
-                                                        <span className="text-sm font-medium text-muted-foreground">({item.value})</span>
-                                                    </div>
-                                                ))}
-                                            </div>
                                         </div>
                                         <div className="flex-1 grid grid-cols-2 gap-4">
                                             {summaryData.map((item, index) => (
@@ -229,10 +201,16 @@ function CategoryPieChart({ title, icon, color, total, percentage, data }) {
         purple: "text-purple-500 border-purple-500/20"
     }[color]
 
+    const TRACKING_NUMBER_PINK = "#ec4899" // pink-500
+
     const pieData = data.map((d, index) => ({
         name: d.name,
         value: d.value,
-        fill: COLORS[index % COLORS.length]
+        fill: (() => {
+            const name = (d.name || "").toLowerCase()
+            if (name.includes("tracking") && name.includes("number")) return TRACKING_NUMBER_PINK
+            return COLORS[index % COLORS.length]
+        })()
     }))
     const totalVal = pieData.reduce((s, d) => s + d.value, 0)
     const legendItems = pieData.map((d) => ({
@@ -254,17 +232,22 @@ function CategoryPieChart({ title, icon, color, total, percentage, data }) {
             <CardContent>
                 {data.length > 0 ? (
                     <>
-                        <Pie3DChart data={pieData} height={280} />
-                        <div className="flex flex-wrap gap-3 justify-center mt-4">
+                        <Pie3DChart data={pieData} height={320} showPercentLabels={false} />
+                        <div className="mt-5 space-y-2 select-text">
                             {legendItems.map((item) => (
-                                <div key={item.name} className="flex items-center gap-1.5 text-xs">
+                                <div key={item.name} className="flex items-center gap-2 text-sm group">
                                     <span
-                                        className="inline-block w-2.5 h-2.5 rounded-sm flex-shrink-0"
+                                        className="inline-block w-3 h-3 rounded-sm flex-shrink-0"
                                         style={{ backgroundColor: item.fill }}
                                     />
-                                    <span className="text-muted-foreground truncate max-w-[100px]">{item.name}</span>
-                                    <span className="font-medium text-foreground">{item.pct.toFixed(1)}%</span>
-                                    <span className="text-muted-foreground">({item.value})</span>
+                                    <span className="text-foreground flex-1 leading-tight">{item.name}</span>
+                                    <span className="font-semibold text-foreground tabular-nums">{item.pct.toFixed(1)}%</span>
+                                    <span
+                                        className="font-bold tabular-nums px-1.5 py-0.5 rounded text-xs"
+                                        style={{ backgroundColor: item.fill + "22", color: item.fill }}
+                                    >
+                                        {item.value}
+                                    </span>
                                 </div>
                             ))}
                         </div>
