@@ -119,6 +119,7 @@ export default function ConcernsBreakdown({ onFetch, concernsData, concernsLoadi
                                             <Pie3DChart
                                                 data={summaryData.map((d) => ({ name: d.name, value: d.value, fill: d.fill }))}
                                                 height={320}
+                                                showPercentLabels={false}
                                             />
                                         </div>
                                         <div className="flex-1 grid grid-cols-2 gap-4">
@@ -200,10 +201,16 @@ function CategoryPieChart({ title, icon, color, total, percentage, data }) {
         purple: "text-purple-500 border-purple-500/20"
     }[color]
 
+    const TRACKING_NUMBER_PINK = "#ec4899" // pink-500
+
     const pieData = data.map((d, index) => ({
         name: d.name,
         value: d.value,
-        fill: COLORS[index % COLORS.length]
+        fill: (() => {
+            const name = (d.name || "").toLowerCase()
+            if (name.includes("tracking") && name.includes("number")) return TRACKING_NUMBER_PINK
+            return COLORS[index % COLORS.length]
+        })()
     }))
     const totalVal = pieData.reduce((s, d) => s + d.value, 0)
     const legendItems = pieData.map((d) => ({
@@ -225,7 +232,7 @@ function CategoryPieChart({ title, icon, color, total, percentage, data }) {
             <CardContent>
                 {data.length > 0 ? (
                     <>
-                        <Pie3DChart data={pieData} height={320} />
+                        <Pie3DChart data={pieData} height={320} showPercentLabels={false} />
                         <div className="mt-5 space-y-2 select-text">
                             {legendItems.map((item) => (
                                 <div key={item.name} className="flex items-center gap-2 text-sm group">

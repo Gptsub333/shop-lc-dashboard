@@ -59,7 +59,7 @@ function sliceOffset(slice, hoveredIndex, idx) {
     }
 }
 
-function drawChart(ctx, W, H, slices, hoveredIndex, rx, ry, cx, cy, depth) {
+function drawChart(ctx, W, H, slices, hoveredIndex, rx, ry, cx, cy, depth, showPercentLabels) {
     ctx.clearRect(0, 0, W, H)
     if (slices.length === 0) return
 
@@ -129,27 +129,29 @@ function drawChart(ctx, W, H, slices, hoveredIndex, rx, ry, cx, cy, depth) {
         drawTop(slices[hoveredIndex], hoveredIndex)
     }
 
-    // Percentage labels
-    const fontSize = Math.max(12, Math.round(rx * 0.092))
-    ctx.font = `bold ${fontSize}px system-ui, -apple-system, sans-serif`
-    ctx.textAlign = "center"
-    ctx.textBaseline = "middle"
+    if (showPercentLabels) {
+        // Percentage labels
+        const fontSize = Math.max(12, Math.round(rx * 0.092))
+        ctx.font = `bold ${fontSize}px system-ui, -apple-system, sans-serif`
+        ctx.textAlign = "center"
+        ctx.textBaseline = "middle"
 
-    slices.forEach((s, i) => {
-        if (s.pct < 3) return
-        const { ox, oy } = sliceOffset(s, hoveredIndex, i)
-        const lr = rx * 0.57
-        const lx = cx + ox + lr * Math.cos(s.mid)
-        const ly = cy + oy + ry * Math.sin(s.mid) * 0.57
-        ctx.shadowColor = "rgba(0,0,0,0.35)"
-        ctx.shadowBlur = 3
-        ctx.fillStyle = "rgba(255,255,255,0.95)"
-        ctx.fillText(`${s.pct.toFixed(1)}%`, lx, ly)
-        ctx.shadowBlur = 0
-    })
+        slices.forEach((s, i) => {
+            if (s.pct < 3) return
+            const { ox, oy } = sliceOffset(s, hoveredIndex, i)
+            const lr = rx * 0.57
+            const lx = cx + ox + lr * Math.cos(s.mid)
+            const ly = cy + oy + ry * Math.sin(s.mid) * 0.57
+            ctx.shadowColor = "rgba(0,0,0,0.35)"
+            ctx.shadowBlur = 3
+            ctx.fillStyle = "rgba(255,255,255,0.95)"
+            ctx.fillText(`${s.pct.toFixed(1)}%`, lx, ly)
+            ctx.shadowBlur = 0
+        })
+    }
 }
 
-export default function Pie3DChart({ data, height = 260 }) {
+export default function Pie3DChart({ data, height = 260, showPercentLabels = true }) {
     const wrapRef = useRef(null)
     const canvasRef = useRef(null)
     const geoRef = useRef(null)
@@ -186,8 +188,8 @@ export default function Pie3DChart({ data, height = 260 }) {
 
         const ctx = canvas.getContext("2d")
         ctx.scale(dpr, dpr)
-        drawChart(ctx, W, H, slices, -1, rx, ry, cx, cy, depth)
-    }, [data, height])
+        drawChart(ctx, W, H, slices, -1, rx, ry, cx, cy, depth, showPercentLabels)
+    }, [data, height, showPercentLabels])
 
     useEffect(() => {
         const canvas = canvasRef.current
@@ -195,8 +197,8 @@ export default function Pie3DChart({ data, height = 260 }) {
         if (!canvas || !geo) return
         const ctx = canvas.getContext("2d")
         ctx.setTransform(geo.dpr, 0, 0, geo.dpr, 0, 0)
-        drawChart(ctx, geo.W, geo.H, slicesRef.current, hovered, geo.rx, geo.ry, geo.cx, geo.cy, geo.depth)
-    }, [hovered])
+        drawChart(ctx, geo.W, geo.H, slicesRef.current, hovered, geo.rx, geo.ry, geo.cx, geo.cy, geo.depth, showPercentLabels)
+    }, [hovered, showPercentLabels])
 
     const handleMouseMove = useCallback((e) => {
         const canvas = canvasRef.current

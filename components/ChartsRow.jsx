@@ -104,7 +104,7 @@ export default function ChartsRow({ activeCalls, stats }) {
                     {/* Containment Rate – headline KPI */}
                     <div className="flex items-center justify-between p-4 rounded-xl border border-border">
                         <div>
-                            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-1">AI Containment Rate</p>
+                            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-1">AI Deflection Rate</p>
                             <p className={`text-5xl font-black ${rateColor.text}`}>{containmentRate}%</p>
                             <p className="text-xs text-muted-foreground mt-1">
                                 {aiContainedLifetime.toLocaleString()} of {totalCalls.toLocaleString()} lifetime calls resolved without a human
@@ -139,7 +139,7 @@ export default function ChartsRow({ activeCalls, stats }) {
                                 <p className="text-xs font-medium text-muted-foreground">Agent Time Saved (Lifetime)</p>
                             </div>
                             <p className="text-3xl font-bold text-cyan-500">{lifetimeSavedStr}</p>
-                            <p className="text-xs text-muted-foreground mt-1">estimated hours saved by AI across all calls</p>
+                            <p className="text-xs text-muted-foreground mt-1">estimated hours saved by Ava across all calls</p>
                         </div>
                         <div className="w-14 h-14 rounded-full bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center flex-shrink-0">
                             <Clock className="w-6 h-6 text-cyan-500" />
