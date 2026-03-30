@@ -14,6 +14,7 @@ import DatePickerYMD from "@/components/DatePickerYMD"
 // ── Consistent color map across both views ───────────────────────────────────
 const CAT_COLORS = {
     "API Issue":            "#378ADD",
+    "API Response":         "#60A5FA",
     "Authorization Failed": "#D4537E",
     "Error Occurred":       "#EF9F27",
     "Not Active":           "#D85A30",
@@ -25,6 +26,7 @@ const CAT_COLORS = {
 const CAT_DESCRIPTIONS = {
     "No Response":          "No reply from the API (timeout or repeated retry failures)",
     "API Issue":            "API returned an invalid or unknown status (e.g., -1)",
+    "API Response":         "Unexpected or improper response/status code from API.",
     "Error Occurred":       "Internal server error or external API failure",
     "Multiple Accounts":    "User has more than one active account",
     "Authorization Failed": "Payment failed due to authorization error at checkout",
