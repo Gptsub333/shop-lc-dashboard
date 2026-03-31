@@ -11,6 +11,7 @@ import ChartsRow from "@/components/ChartsRow"
 import VoiceMetrics from "@/components/VoiceMetrics"
 import SentimentAnalysis from "@/components/SentimentAnalysis"
 import ConcernsBreakdown from "@/components/ConcernsBreakdown"
+import CategoryBreakdown from "@/components/CategoryBreakdown"
 import RefundItems from "@/components/RefundItems"
 import AISummary from "@/components/AISummary"
 
@@ -34,11 +35,20 @@ function AnalyticsContent() {
   const [aiStartDate, setAiStartDate] = useState("")
   const [aiEndDate, setAiEndDate] = useState("")
 
+  const [categoryData, setCategoryData] = useState(null)
+  const [categoryLoading, setCategoryLoading] = useState(false)
+  const [categoryStartDate, setCategoryStartDate] = useState("")
+  const [categoryEndDate, setCategoryEndDate] = useState("")
+
+  const [subconcernData, setSubconcernData] = useState(null)
+
   // Refs to track if APIs have been called
   const statsCalledRef = useRef(false)
   const activeCallsCalledRef = useRef(false)
   const concernsCalledRef = useRef(false)
   const refundsCalledRef = useRef(false)
+  const categoryCalledRef = useRef(false)
+  const subconcernCalledRef = useRef(false)
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -131,6 +141,28 @@ function AnalyticsContent() {
     return `${year}-${month}-${day}`
   }
 
+  const fetchCategoryBreakdown = async (forceRefresh = false) => {
+    if (!forceRefresh && categoryCalledRef.current) return
+    if (!forceRefresh) categoryCalledRef.current = true
+
+    setCategoryLoading(true)
+    try {
+      let url = `${backend_url}/api/dashboard/analytics/category-breakdown`
+      const params = new URLSearchParams()
+      if (categoryStartDate) params.append("start_date", categoryStartDate)
+      if (categoryEndDate) params.append("end_date", categoryEndDate)
+      if (params.toString()) url += `?${params.toString()}`
+
+      const response = await fetch(url)
+      const data = await response.json()
+      setCategoryData(data)
+    } catch (error) {
+      console.error("Error fetching category breakdown:", error)
+    } finally {
+      setCategoryLoading(false)
+    }
+  }
+
   const fetchAISummary = async () => {
     let start = aiStartDate
     let end = aiEndDate
@@ -168,8 +200,26 @@ function AnalyticsContent() {
     })
   }
 
+  const fetchSubconcernBreakdown = async () => {
+    if (subconcernCalledRef.current) return
+    subconcernCalledRef.current = true
+    try {
+      const response = await fetch(`${backend_url}/api/dashboard/analytics/subconcern-breakdown?today_only=true`)
+      if (!response.ok) {
+        console.error("Subconcern breakdown API error:", response.status, response.statusText)
+        return
+      }
+      const data = await response.json()
+      setSubconcernData(data)
+    } catch (error) {
+      console.error("Error fetching subconcern breakdown:", error)
+    }
+  }
+
   useEffect(() => {
     fetchConcernsBreakdown()
+    fetchCategoryBreakdown()
+    fetchSubconcernBreakdown()
     fetchRefundItems()
     fetchAISummary()
   }, [])
@@ -201,7 +251,7 @@ function AnalyticsContent() {
             stats={stats}
             onRefreshActiveCalls={() => fetchActiveCalls(true)}
           />
-          <ChartsRow activeCalls={activeCalls} stats={stats} />
+          <ChartsRow activeCalls={activeCalls} stats={stats} subconcernData={subconcernData} />
           <VoiceMetrics stats={stats} />
           <SentimentAnalysis stats={stats} />
           <ConcernsBreakdown
@@ -212,6 +262,15 @@ function AnalyticsContent() {
             setConcernsStartDate={setConcernsStartDate}
             concernsEndDate={concernsEndDate}
             setConcernsEndDate={setConcernsEndDate}
+          />
+          <CategoryBreakdown
+            data={categoryData}
+            loading={categoryLoading}
+            startDate={categoryStartDate}
+            setStartDate={setCategoryStartDate}
+            endDate={categoryEndDate}
+            setEndDate={setCategoryEndDate}
+            onFetch={() => fetchCategoryBreakdown(true)}
           />
           {/* <RefundItems
             onFetch={() => fetchRefundItems(true)}
