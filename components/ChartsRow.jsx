@@ -25,15 +25,44 @@ function formatMinutes(totalMins) {
     return `${m}m`
 }
 
-export default function ChartsRow({ activeCalls, stats }) {
+// ── Derive sub-concern aggregates from the subconcern-breakdown API response ──
+function deriveSubconcernSubs(subconcernData) {
+    const avaMap = {}
+    const transferMap = {}
+
+    Object.values(subconcernData?.categories ?? {}).forEach((cat) => {
+        Object.entries(cat.sub_concerns ?? {}).forEach(([name, sc]) => {
+            if (sc.ai_handled > 0) {
+                avaMap[name] = (avaMap[name] ?? 0) + sc.ai_handled
+            }
+            if (sc.transferred > 0) {
+                transferMap[name] = (transferMap[name] ?? 0) + sc.transferred
+            }
+        })
+    })
+
+    const toSorted = (map) =>
+        Object.entries(map)
+            .map(([name, value]) => ({ name, value }))
+            .sort((a, b) => b.value - a.value)
+
+    return {
+        avaVoiceSubs: toSorted(avaMap),
+        transferredSubs: toSorted(transferMap),
+    }
+}
+
+export default function ChartsRow({ activeCalls, stats, subconcernData }) {
     const callsToday = stats?.calls_today ?? 0
     const routedToday = stats?.routed_calls_today ?? 0
     const aiHandledToday = Math.max(0, callsToday - routedToday)
     const totalToday = aiHandledToday + routedToday
 
+    const { avaVoiceSubs, transferredSubs } = deriveSubconcernSubs(subconcernData)
+
     const pie3DData = [
-        { name: "Ava Voice", value: aiHandledToday, fill: CALL_OVERVIEW_COLORS.avaVoice },
-        { name: "Transferred to Human", value: routedToday, fill: CALL_OVERVIEW_COLORS.transferred },
+        { name: "Ava Voice", value: aiHandledToday, fill: CALL_OVERVIEW_COLORS.avaVoice, subs: avaVoiceSubs },
+        { name: "Transferred to Human", value: routedToday, fill: CALL_OVERVIEW_COLORS.transferred, subs: transferredSubs },
     ].filter((d) => d.value > 0)
 
     const legendItems = pie3DData.map((d) => ({

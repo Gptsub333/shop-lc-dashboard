@@ -84,6 +84,31 @@ export default function ConcernsBreakdown({ onFetch, concernsData, concernsLoadi
                 </div>
             </CardHeader>
             <CardContent>
+                {/* Sticky notes — categorization model */}
+                <div className="flex flex-wrap gap-4 mb-6">
+                    {/* Note 1: Current model */}
+                    <div className="relative flex-1 min-w-[220px] max-w-xs rounded-2xl border border-sky-200 bg-sky-50 dark:bg-sky-950/30 dark:border-sky-800 px-5 py-4 shadow-sm overflow-hidden">
+                        <div className="absolute top-0 left-0 w-1 h-full rounded-l-2xl bg-sky-400" />
+                        <div className="flex items-center gap-2 mb-2">
+                            <span className="w-2 h-2 rounded-full bg-sky-400 shrink-0" />
+                            <p className="text-[10px] font-semibold text-sky-500 dark:text-sky-400 tracking-widest uppercase">Current Model</p>
+                        </div>
+                        <p className="text-sm font-semibold text-sky-900 dark:text-sky-100 leading-snug">Single call, single major concern</p>
+                        <p className="text-xs text-sky-700/70 dark:text-sky-300/60 mt-1.5 leading-relaxed">Each call is assigned to one primary concern category only.</p>
+                    </div>
+                    {/* Note 2: In progress */}
+                    {/* TODO: Remove or update this note once multi-categorization per call is live */}
+                    <div className="relative flex-1 min-w-[220px] max-w-xs rounded-2xl border border-violet-200 bg-violet-50 dark:bg-violet-950/30 dark:border-violet-800 px-5 py-4 shadow-sm overflow-hidden">
+                        <div className="absolute top-0 left-0 w-1 h-full rounded-l-2xl bg-violet-400" />
+                        <div className="flex items-center gap-2 mb-2">
+                            <span className="w-2 h-2 rounded-full bg-violet-400 animate-pulse shrink-0" />
+                            <p className="text-[10px] font-semibold text-violet-500 dark:text-violet-400 tracking-widest uppercase">In Progress</p>
+                        </div>
+                        <p className="text-sm font-semibold text-violet-900 dark:text-violet-100 leading-snug">Multi-concern categorization</p>
+                        <p className="text-xs text-violet-700/70 dark:text-violet-300/60 mt-1.5 leading-relaxed">Support for tagging a single call across multiple concern types is under integration.</p>
+                    </div>
+                </div>
+
                 <div className="flex flex-col sm:flex-row gap-4 mb-6 p-4 bg-muted/50 rounded-lg">
                     <DatePickerYMD label="Start Date" value={concernsStartDate} onChange={setConcernsStartDate} />
                     <DatePickerYMD label="End Date" value={concernsEndDate} onChange={setConcernsEndDate} />
