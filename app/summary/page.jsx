@@ -8,10 +8,16 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Search, Phone, Clock, CheckCircle2, User, AlertCircle, ChevronDown, ChevronUp, MessageSquare, ChevronLeft, ChevronRight, HeadphonesIcon } from "lucide-react"
-import { dashboardAPI } from "@/lib/api-client"
+import { dashboardAPI, dashboardAPI1 } from "@/lib/api-client"
 
 export default function SummaryPage() {
   const [activeMode, setActiveMode] = useState("cs") // "cs" | "agent"
+
+  // Pick the correct backend based on the active mode:
+  //   CS    → NEXT_PUBLIC_API_URL   (dashboardAPI)
+  //   Agent → NEXT_PUBLIC_API_URL1  (dashboardAPI1)
+  const currentAPI = activeMode === "agent" ? dashboardAPI1 : dashboardAPI
+
   const [phoneNumber, setPhoneNumber] = useState("")
   const [responseData, setResponseData] = useState(null)
   const [expandedSessionId, setExpandedSessionId] = useState(null)
@@ -44,7 +50,7 @@ export default function SummaryPage() {
     setExpandedSessionId(null)
 
     try {
-      const data = await dashboardAPI.getConversation(formattedNumber, page, pageSize)
+      const data = await currentAPI.getConversation(formattedNumber, page, pageSize)
       console.log("API Response:", data)
 
       if (data && data.conversations && data.conversations.length > 0) {
@@ -447,7 +453,7 @@ export default function SummaryPage() {
                   : "bg-background text-muted-foreground border-border hover:border-emerald-400 hover:text-emerald-500"
               }`}
             >
-              CS
+              CS Agent
             </button>
             <div
               onClick={() => setActiveMode(activeMode === "cs" ? "agent" : "cs")}
@@ -469,35 +475,18 @@ export default function SummaryPage() {
                   : "bg-background text-muted-foreground border-border hover:border-emerald-400 hover:text-emerald-500"
               }`}
             >
-              Agent
+              Sales Agent
             </button>
           </div>
 
-          {/* Agent – Coming Soon */}
-          {activeMode === "agent" && (
-            <div className="flex items-center justify-center h-[calc(100vh-260px)]">
-              <div className="text-center max-w-md">
-                <div className="w-24 h-24 rounded-full bg-emerald-500/10 flex items-center justify-center mx-auto mb-6">
-                  <HeadphonesIcon className="w-12 h-12 text-emerald-500" />
-                </div>
-                <h1 className="text-3xl font-bold text-foreground mb-3">Coming Soon</h1>
-                <p className="text-muted-foreground text-base mb-6">
-                  Agent-level call lookup and performance insights are under development and will be available here soon.
-                </p>
-                <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
-                  <div className="bg-emerald-500 h-2 rounded-full w-2/5 animate-pulse" />
-                </div>
-                <p className="text-xs text-muted-foreground mt-3">In progress</p>
-              </div>
-            </div>
-          )}
-
-          {/* CS – existing search */}
-          {activeMode === "cs" && <>
+          {/* Search UI — shared by both CS and Agent modes (backend differs) */}
+          {<>
           <Card className="mb-8">
             <CardHeader>
               <CardTitle>Search by Phone Number</CardTitle>
-              <CardDescription>Enter a mobile number to retrieve the session summary</CardDescription>
+              <CardDescription>
+                Enter a mobile number to retrieve the session summary
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="flex gap-4">
