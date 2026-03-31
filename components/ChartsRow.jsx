@@ -136,7 +136,7 @@ export default function ChartsRow({ activeCalls, stats, subconcernData }) {
                             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-1">AI Deflection Rate</p>
                             <p className={`text-5xl font-black ${rateColor.text}`}>{containmentRate}%</p>
                             <p className="text-xs text-muted-foreground mt-1">
-                                {aiContainedLifetime.toLocaleString()} of {totalCalls.toLocaleString()} lifetime calls resolved without a human
+                                {aiContainedLifetime.toLocaleString()} of {totalCalls.toLocaleString()} lifetime calls deflected without a human
                             </p>
                         </div>
                         <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
