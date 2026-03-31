@@ -215,7 +215,7 @@ export default function Pie3DChart({ data, height = 260, showPercentLabels = tru
         if (idx >= 0) {
             canvas.style.cursor = "pointer"
             const sl = slicesRef.current[idx]
-            setTooltip({ x: mx, y: my, name: sl.name, value: sl.value, pct: sl.pct, fill: sl.fill, subs: sl.subs ?? [] })
+            setTooltip({ x: mx, y: my, name: sl.name, value: sl.value, pct: sl.pct, fill: sl.fill, subs: sl.subs })
         } else {
             canvas.style.cursor = "default"
             setTooltip(null)
@@ -236,79 +236,138 @@ export default function Pie3DChart({ data, height = 260, showPercentLabels = tru
                 onMouseLeave={handleMouseLeave}
             />
             {tooltip && (
-                <div
-                    className="pointer-events-none absolute z-50"
-                    style={{
-                        left: tooltip.x,
-                        top: tooltip.y - (tooltip.subs?.length > 0 ? 24 + tooltip.subs.length * 28 + 64 : 68),
-                        transform: "translateX(-50%)",
-                        minWidth: 230,
-                        maxWidth: 290,
-                    }}
-                >
-                    {/* Card */}
+                tooltip.subs !== undefined ? (
+                    /* ── Rich card: Calls Overview only (subs explicitly provided) ── */
                     <div
-                        className="rounded-xl border border-border shadow-2xl"
-                        style={{ backgroundColor: "var(--background)", backdropFilter: "blur(8px)" }}
+                        className="pointer-events-none absolute z-50"
+                        style={{
+                            left: tooltip.x,
+                            top: tooltip.y - (tooltip.subs.length > 0 ? 32 + tooltip.subs.length * 32 + 72 : 72),
+                            transform: "translateX(-50%)",
+                            width: 260,
+                            filter: "drop-shadow(0 8px 24px rgba(0,0,0,0.18))",
+                        }}
                     >
-                        {/* Header row */}
-                        <div className="flex items-center justify-between gap-3 px-4 py-2.5"
-                            style={{ borderBottom: tooltip.subs?.length > 0 ? "1px solid rgba(128,128,128,0.15)" : undefined }}
+                        <div
+                            className="rounded-2xl overflow-hidden"
+                            style={{
+                                backgroundColor: "var(--background)",
+                                border: `1.5px solid ${tooltip.fill}40`,
+                                boxShadow: `0 0 0 1px ${tooltip.fill}18, 0 4px 32px ${tooltip.fill}22`,
+                            }}
                         >
-                            <div className="flex items-center gap-2 min-w-0">
-                                <span
-                                    className="inline-block w-3 h-3 rounded-full shrink-0"
-                                    style={{ backgroundColor: tooltip.fill }}
-                                />
-                                <span className="text-sm font-semibold text-foreground truncate">{tooltip.name}</span>
-                            </div>
-                            <div className="text-right shrink-0">
-                                <span className="text-sm font-bold text-foreground">{tooltip.value.toLocaleString()}</span>
-                                <span className="text-xs text-muted-foreground ml-1">({tooltip.pct.toFixed(1)}%)</span>
-                            </div>
-                        </div>
+                            {/* Coloured top accent bar */}
+                            <div style={{ height: 3, background: `linear-gradient(90deg, ${tooltip.fill}, ${tooltip.fill}88)` }} />
 
-                        {/* Sub-concern rows */}
-                        {tooltip.subs?.length > 0 ? (() => {
-                            const maxVal = tooltip.subs[0].value || 1
-                            return (
-                                <div className="px-4 pt-2 pb-3 space-y-2">
-                                    <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-1">
-                                        By Sub-concern
-                                    </p>
-                                    {tooltip.subs.map((sub) => (
-                                        <div key={sub.name} className="flex items-center gap-2">
-                                            <span className="text-xs text-muted-foreground truncate flex-1 min-w-0">{sub.name}</span>
-                                            <span className="text-xs font-semibold tabular-nums shrink-0" style={{ color: tooltip.fill }}>
-                                                {sub.value}
-                                            </span>
-                                            <div className="w-14 h-1.5 rounded-full bg-muted shrink-0 overflow-hidden">
-                                                <div
-                                                    className="h-full rounded-full"
-                                                    style={{ width: `${(sub.value / maxVal) * 100}%`, backgroundColor: tooltip.fill, opacity: 0.8 }}
-                                                />
-                                            </div>
-                                        </div>
-                                    ))}
+                            {/* Header */}
+                            <div className="flex items-center justify-between gap-2 px-4 pt-3 pb-2.5">
+                                <div className="flex items-center gap-2 min-w-0">
+                                    <span
+                                        className="inline-block w-2.5 h-2.5 rounded-full shrink-0"
+                                        style={{ backgroundColor: tooltip.fill, boxShadow: `0 0 6px 2px ${tooltip.fill}66` }}
+                                    />
+                                    <span className="text-sm font-bold text-foreground truncate leading-none">
+                                        {tooltip.name}
+                                    </span>
                                 </div>
-                            )
-                        })() : (
-                            <div className="px-4 pt-1.5 pb-2.5">
-                                <p className="text-[10px] text-muted-foreground/50 italic">No subconcern data available</p>
+                                <div
+                                    className="flex items-center gap-1 px-2 py-0.5 rounded-full shrink-0"
+                                    style={{ backgroundColor: `${tooltip.fill}18` }}
+                                >
+                                    <span className="text-xs font-bold tabular-nums" style={{ color: tooltip.fill }}>
+                                        {tooltip.value.toLocaleString()}
+                                    </span>
+                                    <span className="text-[10px] text-muted-foreground">
+                                        · {tooltip.pct.toFixed(1)}%
+                                    </span>
+                                </div>
                             </div>
-                        )}
-                    </div>
 
-                    {/* Caret pointing down toward the pie */}
-                    <div style={{
-                        width: 0,
-                        height: 0,
-                        borderLeft: "8px solid transparent",
-                        borderRight: "8px solid transparent",
-                        borderTop: "8px solid var(--border)",
-                        margin: "0 auto",
-                    }} />
-                </div>
+                            {/* Sub-concern rows */}
+                            {tooltip.subs.length > 0 ? (() => {
+                                const maxVal = tooltip.subs[0].value || 1
+                                return (
+                                    <>
+                                        <div className="mx-4 mb-2" style={{ height: 1, backgroundColor: `${tooltip.fill}20` }} />
+                                        <div className="px-4 pb-3 space-y-2.5">
+                                            <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
+                                                Breakdown by concern
+                                            </p>
+                                            {tooltip.subs.map((sub) => {
+                                                const pct = Math.round((sub.value / maxVal) * 100)
+                                                return (
+                                                    <div key={sub.name} className="space-y-0.5">
+                                                        <div className="flex items-center justify-between gap-2">
+                                                            <span className="text-xs text-foreground/80 truncate leading-none" style={{ maxWidth: 148 }}>
+                                                                {sub.name}
+                                                            </span>
+                                                            <span className="text-xs font-bold tabular-nums shrink-0 leading-none" style={{ color: tooltip.fill }}>
+                                                                {sub.value}
+                                                            </span>
+                                                        </div>
+                                                        <div className="h-1 rounded-full overflow-hidden" style={{ backgroundColor: `${tooltip.fill}15` }}>
+                                                            <div
+                                                                className="h-full rounded-full"
+                                                                style={{
+                                                                    width: `${pct}%`,
+                                                                    background: `linear-gradient(90deg, ${tooltip.fill}, ${tooltip.fill}bb)`,
+                                                                    transition: "width 0.3s ease",
+                                                                }}
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                )
+                                            })}
+                                        </div>
+                                    </>
+                                )
+                            })() : (
+                                <div className="px-4 pb-3">
+                                    <div className="mb-2" style={{ height: 1, backgroundColor: `${tooltip.fill}20` }} />
+                                    <p className="text-[10px] text-muted-foreground/40 italic">No subconcern data</p>
+                                </div>
+                            )}
+                        </div>
+                        {/* Caret */}
+                        <div
+                            style={{
+                                width: 0, height: 0,
+                                borderLeft: "9px solid transparent",
+                                borderRight: "9px solid transparent",
+                                borderTop: `9px solid ${tooltip.fill}40`,
+                                margin: "0 auto",
+                            }}
+                        />
+                    </div>
+                ) : (
+                    /* ── Simple classic tooltip: all other pie charts ── */
+                    <div
+                        className="pointer-events-none absolute z-50 rounded-xl px-3 py-2.5"
+                        style={{
+                            left: tooltip.x,
+                            top: tooltip.y - 64,
+                            transform: "translateX(-50%)",
+                            backgroundColor: "var(--background)",
+                            border: "1px solid hsl(var(--border))",
+                            boxShadow: "0 4px 16px rgba(0,0,0,0.12)",
+                            minWidth: 160,
+                        }}
+                    >
+                        <div className="flex items-center gap-2 mb-1">
+                            <span
+                                className="inline-block w-2.5 h-2.5 rounded-full shrink-0"
+                                style={{ backgroundColor: tooltip.fill }}
+                            />
+                            <span className="text-sm font-semibold text-foreground leading-none">
+                                {tooltip.name}
+                            </span>
+                        </div>
+                        <p className="text-sm text-muted-foreground pl-[18px]">
+                            <span className="font-bold text-foreground">{tooltip.value.toLocaleString()}</span>
+                            {" "}({tooltip.pct.toFixed(1)}%)
+                        </p>
+                    </div>
+                )
             )}
         </div>
     )
