@@ -242,9 +242,9 @@ export default function Pie3DChart({ data, height = 260, showPercentLabels = tru
                         className="pointer-events-none absolute z-50"
                         style={{
                             left: tooltip.x,
-                            top: tooltip.y - (tooltip.subs.length > 0 ? 32 + tooltip.subs.length * 32 + 72 : 72),
+                            top: tooltip.y - (tooltip.subs.length > 0 ? 40 + tooltip.subs.length * 48 + 72 : 72),
                             transform: "translateX(-50%)",
-                            width: 260,
+                            width: 320,
                             filter: "drop-shadow(0 8px 24px rgba(0,0,0,0.18))",
                         }}
                     >
@@ -266,7 +266,7 @@ export default function Pie3DChart({ data, height = 260, showPercentLabels = tru
                                         className="inline-block w-2.5 h-2.5 rounded-full shrink-0"
                                         style={{ backgroundColor: tooltip.fill, boxShadow: `0 0 6px 2px ${tooltip.fill}66` }}
                                     />
-                                    <span className="text-sm font-bold text-foreground truncate leading-none">
+                                    <span className="text-sm font-bold text-foreground leading-snug">
                                         {tooltip.name}
                                     </span>
                                 </div>
@@ -298,7 +298,7 @@ export default function Pie3DChart({ data, height = 260, showPercentLabels = tru
                                                 return (
                                                     <div key={sub.name} className="space-y-0.5">
                                                         <div className="flex items-center justify-between gap-2">
-                                                            <span className="text-xs text-foreground/80 truncate leading-none" style={{ maxWidth: 148 }}>
+                                                            <span className="text-xs text-foreground/80 leading-snug">
                                                                 {sub.name}
                                                             </span>
                                                             <span className="text-xs font-bold tabular-nums shrink-0 leading-none" style={{ color: tooltip.fill }}>
