@@ -23,9 +23,9 @@ const KPI_CARDS = (activeCalls, stats, summary) => {
             border: "border-l-blue-500",
         },
         {
-            label: "Orders Confirmed",
-            value: totals?.orders_confirmed?.toLocaleString() ?? "—",
-            sub: `${totals?.order_confirmation_rate ?? 0}% confirmation rate`,
+            label: "Orders Today",
+            value: stats?.orders_placed_today?.toLocaleString() ?? "—",
+            sub: "Placed today",
             icon: ShoppingCart,
             color: "text-emerald-500",
             bg: "bg-emerald-500/10",
