@@ -5,6 +5,11 @@ import { Button } from "@/components/ui/button"
 import { GitBranch, RefreshCw } from "lucide-react"
 import DatePickerYMD from "@/components/DatePickerYMD"
 
+const LABEL_OVERRIDES = {
+    "Data Fetch":           "Auction Fetch",
+    "Checkout Processing":  "Checkout",
+}
+
 const FUNNEL_COLORS = [
     "#06b6d4",
     "#f43f5e",
@@ -32,10 +37,11 @@ function lighten(hex, amt = 45) {
 }
 
 function Funnel3D({ stages }) {
-    const LABEL_W    = 110
-    const FUNNEL_MAX = 280
-    const CX         = LABEL_W + FUNNEL_MAX / 2   // 270
-    const TOTAL_W    = LABEL_W + FUNNEL_MAX + 16   // 426
+    const LABEL_W    = 110   // left zone: stage names
+    const RIGHT_W    = 110   // right zone: reach % + ok/fail (matches left for perfect centering)
+    const FUNNEL_MAX = 280   // funnel body width (unchanged)
+    const CX         = LABEL_W + FUNNEL_MAX / 2   // 250
+    const TOTAL_W    = LABEL_W + FUNNEL_MAX + RIGHT_W  // 480
     const SLICE_H    = 42
     const DEPTH      = 10
     const GAP        = 5
@@ -95,11 +101,11 @@ function Funnel3D({ stages }) {
                             x={LABEL_W - 12}
                             y={midY + 4}
                             textAnchor="end"
-                            fontSize="10"
+                            fontSize="11"
                             fill="#94a3b8"
                             fontFamily="system-ui, -apple-system, sans-serif"
                         >
-                            {stage.label}
+                            {LABEL_OVERRIDES[stage.label] ?? stage.label}
                         </text>
 
                         {/* Dashed connector from label to funnel left edge */}
@@ -112,27 +118,36 @@ function Funnel3D({ stages }) {
                             opacity="0.45"
                         />
 
-                        {/* Reach rate % — bold white, centered */}
+                        {/* Dashed connector from funnel right edge to right label */}
+                        <line
+                            x1={x2 - 3} y1={midY}
+                            x2={LABEL_W + FUNNEL_MAX + 8} y2={midY}
+                            stroke="#475569"
+                            strokeWidth="1"
+                            strokeDasharray="3 2"
+                            opacity="0.45"
+                        />
+
+                        {/* Reach rate — right label zone, top line */}
                         <text
-                            x={CX}
-                            y={midY - 5}
-                            textAnchor="middle"
-                            dominantBaseline="middle"
-                            fontSize="13"
+                            x={LABEL_W + FUNNEL_MAX + 12}
+                            y={midY - 1}
+                            textAnchor="start"
+                            fontSize="14"
                             fontWeight="bold"
-                            fill="white"
+                            fill={color}
                             fontFamily="system-ui, -apple-system, sans-serif"
                         >
                             {stage.reach_rate}%
                         </text>
 
-                        {/* Success / fail count in smaller text */}
+                        {/* ok · fail — right label zone, bottom line */}
                         <text
-                            x={CX}
-                            y={midY + 9}
-                            textAnchor="middle"
-                            fontSize="9"
-                            fill="rgba(255,255,255,0.82)"
+                            x={LABEL_W + FUNNEL_MAX + 12}
+                            y={midY + 10}
+                            textAnchor="start"
+                            fontSize="10"
+                            fill="#94a3b8"
                             fontFamily="system-ui, -apple-system, sans-serif"
                         >
                             {stage.success.toLocaleString()} ok · {stage.fail} fail
@@ -193,7 +208,7 @@ export default function FunnelSection({ data, loading, startDate, setStartDate, 
                 ) : (
                     <div>
                         <div className="py-4 flex justify-center">
-                            <div className="w-full max-w-lg">
+                            <div className="w-full max-w-xl mx-auto">
                                 <Funnel3D stages={funnel} />
                             </div>
                         </div>
