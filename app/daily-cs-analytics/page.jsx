@@ -745,48 +745,50 @@ function DailyCSAnalyticsContent() {
                                     {/* ── Peak Calls Area Chart (default) ───────────── */}
                                     {vizType === "area" && (
                                         <div>
-                                            <div className="flex items-center gap-2 mb-5">
-                                                <Activity className="w-4 h-4 text-muted-foreground" />
-                                                <p className="text-sm font-semibold text-foreground">Peak Call Volume</p>
-                                                <span className="text-xs text-muted-foreground">
-                                                    — hourly distribution
-                                                    {peakEntry.calls > 0 && (
-                                                        <span className="ml-1 text-[#06b6d4] font-semibold">
-                                                            · peak {peakEntry.calls} calls @ {peakEntry.hour}
-                                                        </span>
-                                                    )}
-                                                </span>
+                                            <div className="flex items-center justify-between mb-3">
+                                                <div>
+                                                    <p className="text-sm font-semibold text-foreground">Intraday Call Volume (Pattern)</p>
+                                                    <p className="text-xs text-muted-foreground">
+                                                        Estimated call distribution across 24 hours
+                                                        {peakEntry.calls > 0 && (
+                                                            <span className="ml-2 text-primary font-medium">
+                                                                · Peak: {peakEntry.hour} ({peakEntry.calls} calls)
+                                                            </span>
+                                                        )}
+                                                    </p>
+                                                </div>
                                             </div>
-                                            <div className="rounded-xl border bg-card overflow-hidden">
+                                            <div className="rounded-xl overflow-hidden border bg-card">
                                                 <ResponsiveContainer width="100%" height={240}>
-                                                    <AreaChart data={hourlyData} margin={{ top: 12, right: 20, left: -10, bottom: 4 }}>
+                                                    <AreaChart data={hourlyData} margin={{ top: 16, right: 16, left: 0, bottom: 0 }}>
                                                         <defs>
-                                                            <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
-                                                                <stop offset="5%"  stopColor="#06b6d4" stopOpacity={0.3} />
-                                                                <stop offset="95%" stopColor="#06b6d4" stopOpacity={0.02} />
+                                                            <linearGradient id="callsGradientDaily" x1="0" y1="0" x2="0" y2="1">
+                                                                <stop offset="0%" stopColor="#06b6d4" stopOpacity={0.35} />
+                                                                <stop offset="100%" stopColor="#06b6d4" stopOpacity={0} />
                                                             </linearGradient>
                                                         </defs>
-                                                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" strokeOpacity={0.4} />
+                                                        <CartesianGrid strokeDasharray="3 3" opacity={0.08} vertical={false} />
                                                         <XAxis
                                                             dataKey="hour"
-                                                            tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
-                                                            axisLine={false}
+                                                            tick={{ fontSize: 10 }}
                                                             tickLine={false}
-                                                            interval={1}
+                                                            axisLine={false}
+                                                            interval={2}
                                                         />
                                                         <YAxis
-                                                            tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
-                                                            axisLine={false}
+                                                            tick={{ fontSize: 10 }}
                                                             tickLine={false}
-                                                            allowDecimals={false}
+                                                            axisLine={false}
+                                                            width={32}
                                                         />
                                                         <Tooltip content={<HourlyTooltip />} />
                                                         {peakEntry.calls > 0 && (
                                                             <ReferenceLine
                                                                 x={peakEntry.hour}
-                                                                stroke="#06b6d4"
-                                                                strokeDasharray="4 3"
-                                                                strokeOpacity={0.55}
+                                                                stroke="#f59e0b"
+                                                                strokeDasharray="4 4"
+                                                                strokeWidth={1.5}
+                                                                label={{ value: "Peak", position: "top", fontSize: 10, fill: "#f59e0b" }}
                                                             />
                                                         )}
                                                         <Area
@@ -794,9 +796,9 @@ function DailyCSAnalyticsContent() {
                                                             dataKey="calls"
                                                             stroke="#06b6d4"
                                                             strokeWidth={2.5}
-                                                            fill="url(#areaGrad)"
+                                                            fill="url(#callsGradientDaily)"
                                                             dot={false}
-                                                            activeDot={{ r: 5, fill: "#06b6d4", stroke: "white", strokeWidth: 2 }}
+                                                            activeDot={{ r: 4, fill: "#06b6d4", stroke: "white", strokeWidth: 2 }}
                                                         />
                                                     </AreaChart>
                                                 </ResponsiveContainer>
