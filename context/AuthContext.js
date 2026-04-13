@@ -1,7 +1,7 @@
 "use client"
 
 import { createContext, useContext, useEffect, useState } from "react"
-import { useRouter, usePathname } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import { validateCredentials, createSession, isSessionValid } from '@/lib/auth'
 
 const AuthContext = createContext()
@@ -10,7 +10,6 @@ export function AuthProvider({ children }) {
     const [user, setUser] = useState(null)
     const [loading, setLoading] = useState(true)
     const router = useRouter()
-    const pathname = usePathname()
 
     useEffect(() => {
         // Check for existing session in localStorage
