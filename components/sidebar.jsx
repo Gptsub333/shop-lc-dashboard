@@ -3,7 +3,7 @@
 import { useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Phone, BarChart3, TrendingUp, ChevronLeft, ChevronRight } from "lucide-react"
+import { Phone, BarChart3, TrendingUp, ChevronLeft, ChevronRight, CalendarDays } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 export default function Sidebar() {
@@ -12,6 +12,7 @@ export default function Sidebar() {
 
   const navItems = [
     { name: "CS Analytics", href: "/analytics", icon: BarChart3 },
+    { name: "Daily's CS Analytics", href: "/daily-cs-analytics", icon: CalendarDays },
     { name: "Sales Analytics", href: "/sales-analytics", icon: TrendingUp },
     { name: "Summary", href: "/summary", icon: Phone },
   ]
