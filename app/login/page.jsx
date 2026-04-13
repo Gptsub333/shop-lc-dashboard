@@ -1,7 +1,7 @@
 "use client"
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useAuth } from '@/context/AuthContext'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -9,13 +9,19 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Label } from '@/components/ui/label'
 import { AlertCircle, Lock, ArrowLeft } from 'lucide-react'
 
-export default function LoginPage() {
+function LoginForm() {
     const [username, setUsername] = useState('')
     const [password, setPassword] = useState('')
     const [error, setError] = useState('')
     const [loading, setLoading] = useState(false)
-    const { login } = useAuth()
+    const { login, isAuthenticated, loading: authLoading } = useAuth()
     const router = useRouter()
+    const searchParams = useSearchParams()
+
+    // Return to the page the user came from, defaulting to CS Analytics.
+    // Guard against open-redirect: only allow same-origin (relative) paths.
+    const rawReturnTo = searchParams.get('returnTo') || '/analytics'
+    const returnTo = rawReturnTo.startsWith('/') ? rawReturnTo : '/analytics'
 
     const handleSubmit = async (e) => {
         e.preventDefault()
@@ -25,7 +31,7 @@ export default function LoginPage() {
         const result = login(username, password)
 
         if (result.success) {
-            router.push('/analytics')
+            router.push(returnTo)
         } else {
             setError(result.error)
         }
@@ -33,8 +39,14 @@ export default function LoginPage() {
         setLoading(false)
     }
 
+    // Already logged in — redirect away from login page
+    if (!authLoading && isAuthenticated()) {
+        router.replace(returnTo)
+        return null
+    }
+
     const handleBack = () => {
-        router.push('/') // or '/' for home page
+        router.push('/analytics')
     }
 
     return (
@@ -101,5 +113,13 @@ export default function LoginPage() {
                 </CardContent>
             </Card>
         </div>
+    )
+}
+
+export default function LoginPage() {
+    return (
+        <Suspense>
+            <LoginForm />
+        </Suspense>
     )
 }

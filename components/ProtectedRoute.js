@@ -1,19 +1,22 @@
 "use client"
 
 import { useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
 import { useAuth } from '@/context/AuthContext'
 import { RefreshCw } from 'lucide-react'
 
 export default function ProtectedRoute({ children }) {
     const { isAuthenticated, loading } = useAuth()
     const router = useRouter()
+    const pathname = usePathname()
 
     useEffect(() => {
         if (!loading && !isAuthenticated()) {
-            router.push('/login')
+            // Preserve the current path so login can return the user here
+            router.push(`/login?returnTo=${encodeURIComponent(pathname)}`)
         }
-    }, [loading, isAuthenticated, router])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [loading])   // intentionally exclude isAuthenticated — it's a new ref every render
 
     if (loading) {
         return (
