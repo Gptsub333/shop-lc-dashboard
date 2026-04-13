@@ -182,6 +182,10 @@ export default function ConcernsBreakdown({ onFetch, concernsData, concernsLoadi
                                 total={concernsData.orders.total}
                                 percentage={concernsData.orders.percentage}
                                 data={ordersConcernsData}
+                                handledByAva={[
+                                    "Order status inquiry",
+                                    "Order not delivered / delayed",
+                                ]}
                             />
 
                             <CategoryPieChart
@@ -191,6 +195,12 @@ export default function ConcernsBreakdown({ onFetch, concernsData, concernsLoadi
                                 total={concernsData.refunds.total}
                                 percentage={concernsData.refunds.percentage}
                                 data={refundsConcernsData}
+                                handledByAva={[
+                                    "Refund status check",
+                                    "Refund policy questions",
+                                    "Partial refund inquiry",
+                                    "Refund timeline / processing time",
+                                ]}
                             />
 
                             <CategoryPieChart
@@ -200,8 +210,14 @@ export default function ConcernsBreakdown({ onFetch, concernsData, concernsLoadi
                                 total={concernsData.budget_pay.total}
                                 percentage={concernsData.budget_pay.percentage}
                                 data={budgetPayConcernsData}
+                                handledByAva={[
+                                    "Budget Pay balance inquiry",
+                                    "Outstanding amount questions",
+                                    "Payment schedule",
+                                ]}
                             />
 
+                            {/* Policies — Ava handles everything */}
                             <CategoryPieChart
                                 title="Policies Concerns"
                                 icon={<BarChart3 className="w-5 h-5" />}
@@ -209,6 +225,7 @@ export default function ConcernsBreakdown({ onFetch, concernsData, concernsLoadi
                                 total={concernsData.policies.total}
                                 percentage={concernsData.policies.percentage}
                                 data={policiesConcernsData}
+                                allHandled
                             />
                         </div>
                     </div>
@@ -218,7 +235,26 @@ export default function ConcernsBreakdown({ onFetch, concernsData, concernsLoadi
     )
 }
 
-function CategoryPieChart({ title, icon, color, total, percentage, data }) {
+function LegendRow({ item }) {
+    return (
+        <div className="flex items-center gap-2 text-sm">
+            <span
+                className="inline-block w-3 h-3 rounded-sm flex-shrink-0"
+                style={{ backgroundColor: item.fill }}
+            />
+            <span className="text-foreground flex-1 leading-tight">{item.name}</span>
+            <span className="font-semibold text-foreground tabular-nums">{item.pct.toFixed(1)}%</span>
+            <span
+                className="font-bold tabular-nums px-1.5 py-0.5 rounded text-xs"
+                style={{ backgroundColor: item.fill + "22", color: item.fill }}
+            >
+                {item.value}
+            </span>
+        </div>
+    )
+}
+
+function CategoryPieChart({ title, icon, color, total, percentage, data, handledByAva, allHandled }) {
     const colorClass = {
         blue: "text-blue-500 border-blue-500/20",
         red: "text-red-500 border-red-500/20",
@@ -226,7 +262,7 @@ function CategoryPieChart({ title, icon, color, total, percentage, data }) {
         purple: "text-purple-500 border-purple-500/20"
     }[color]
 
-    const TRACKING_NUMBER_PINK = "#ec4899" // pink-500
+    const TRACKING_NUMBER_PINK = "#ec4899"
 
     const pieData = data.map((d, index) => ({
         name: d.name,
@@ -243,6 +279,21 @@ function CategoryPieChart({ title, icon, color, total, percentage, data }) {
         pct: totalVal > 0 ? (d.value / totalVal) * 100 : 0
     }))
 
+    // Split into Ava-handled vs not-handled groups when handledByAva is provided.
+    // "others" (case-insensitive) always goes last in whichever group it falls into.
+    const isOther = (name) => (name || "").toLowerCase().trim() === "others"
+    const isHandled = (name) => handledByAva?.some(
+        (h) => h.toLowerCase() === (name || "").toLowerCase()
+    )
+
+    const sortWithOthersLast = (arr) => [
+        ...arr.filter((i) => !isOther(i.name)),
+        ...arr.filter((i) => isOther(i.name)),
+    ]
+
+    const handledItems   = handledByAva ? sortWithOthersLast(legendItems.filter((i) => isHandled(i.name)))  : []
+    const unhandledItems = handledByAva ? sortWithOthersLast(legendItems.filter((i) => !isHandled(i.name))) : []
+
     return (
         <Card className={colorClass.split(" ")[1]}>
             <CardHeader>
@@ -258,22 +309,45 @@ function CategoryPieChart({ title, icon, color, total, percentage, data }) {
                 {data.length > 0 ? (
                     <>
                         <Pie3DChart data={pieData} height={320} showPercentLabels={false} />
-                        <div className="mt-5 space-y-2 select-text">
-                            {legendItems.map((item) => (
-                                <div key={item.name} className="flex items-center gap-2 text-sm group">
-                                    <span
-                                        className="inline-block w-3 h-3 rounded-sm flex-shrink-0"
-                                        style={{ backgroundColor: item.fill }}
-                                    />
-                                    <span className="text-foreground flex-1 leading-tight">{item.name}</span>
-                                    <span className="font-semibold text-foreground tabular-nums">{item.pct.toFixed(1)}%</span>
-                                    <span
-                                        className="font-bold tabular-nums px-1.5 py-0.5 rounded text-xs"
-                                        style={{ backgroundColor: item.fill + "22", color: item.fill }}
-                                    >
-                                        {item.value}
-                                    </span>
+
+                        <div className="mt-5 space-y-3 select-text">
+                            {/* What Ava Handles panel — shown for all charts */}
+                            {(allHandled || handledItems.length > 0) && (
+                                <div className="rounded-xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/30 px-4 pt-3 pb-4">
+                                    <div className="flex items-center gap-2 mb-3">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
+                                        <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-600 dark:text-emerald-400">
+                                            What Ava Handles
+                                        </p>
+                                    </div>
+                                    <div className="space-y-2">
+                                        {(allHandled ? sortWithOthersLast(legendItems) : handledItems).map((item) => (
+                                            <LegendRow key={item.name} item={item} />
+                                        ))}
+                                    </div>
                                 </div>
+                            )}
+
+                            {/* What Ava Doesn't Handle panel — only when handledByAva is set (not allHandled) */}
+                            {!allHandled && unhandledItems.length > 0 && (
+                                <div className="rounded-xl border border-rose-200 dark:border-rose-800 bg-rose-50 dark:bg-rose-950/30 px-4 pt-3 pb-4">
+                                    <div className="flex items-center gap-2 mb-3">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0" />
+                                        <p className="text-[10px] font-bold uppercase tracking-widest text-rose-500 dark:text-rose-400">
+                                            What Ava Doesn&apos;t Handle
+                                        </p>
+                                    </div>
+                                    <div className="space-y-2">
+                                        {unhandledItems.map((item) => (
+                                            <LegendRow key={item.name} item={item} />
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* No handledByAva and not allHandled — plain flat legend (fallback) */}
+                            {!handledByAva && !allHandled && sortWithOthersLast(legendItems).map((item) => (
+                                <LegendRow key={item.name} item={item} />
                             ))}
                         </div>
                     </>
