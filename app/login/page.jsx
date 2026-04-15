@@ -46,7 +46,7 @@ function LoginForm() {
     }
 
     const handleBack = () => {
-        router.push('/analytics')
+        router.push('/summary')
     }
 
     return (
