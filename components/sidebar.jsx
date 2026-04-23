@@ -3,7 +3,7 @@
 import { useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Phone, BarChart3, TrendingUp, ChevronLeft, ChevronRight, CalendarDays } from "lucide-react"
+import { Phone, BarChart3, TrendingUp, ChevronLeft, ChevronRight, CalendarDays, FlaskConical } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 export default function Sidebar() {
@@ -14,6 +14,7 @@ export default function Sidebar() {
     { name: "CS Analytics", href: "/analytics", icon: BarChart3 },
     { name: "Daily's CS Analytics", href: "/daily-cs-analytics", icon: CalendarDays },
     { name: "Sales Analytics", href: "/sales-analytics", icon: TrendingUp },
+    { name: "QA Dashboard", href: "/qa-dashboard", icon: FlaskConical, comingSoon: true },
     { name: "Summary", href: "/summary", icon: Phone },
   ]
 
@@ -56,15 +57,38 @@ export default function Sidebar() {
         <ul className="space-y-2">
           {navItems.map((item) => {
             const Icon = item.icon
-            const isActive = pathname === item.href
+            const isActive = !item.comingSoon && pathname === item.href
+            const baseRow = `flex items-center ${
+              isCollapsed ? "justify-center px-2" : "gap-3 px-4"
+            } py-3 rounded-lg transition-all`
+
+            if (item.comingSoon) {
+              return (
+                <li key={item.href}>
+                  <div
+                    role="presentation"
+                    className={`${baseRow} cursor-not-allowed opacity-60 text-muted-foreground`}
+                    title={isCollapsed ? `${item.name} — Coming soon` : undefined}
+                  >
+                    <Icon className="w-5 h-5 shrink-0" />
+                    {!isCollapsed && (
+                      <>
+                        <span className="font-medium flex-1 min-w-0">{item.name}</span>
+                        <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/90 shrink-0">
+                          Soon
+                        </span>
+                      </>
+                    )}
+                  </div>
+                </li>
+              )
+            }
 
             return (
               <li key={item.href}>
                 <Link
                   href={item.href}
-                  className={`flex items-center ${
-                    isCollapsed ? "justify-center px-2" : "gap-3 px-4"
-                  } py-3 rounded-lg transition-all ${
+                  className={`${baseRow} ${
                     isActive
                       ? "bg-sidebar-accent text-sidebar-accent-foreground"
                       : "text-sidebar-foreground hover:bg-sidebar-accent/50"
