@@ -156,8 +156,18 @@ export default function Pie3DChart({ data, height = 260, showPercentLabels = tru
     const canvasRef = useRef(null)
     const geoRef = useRef(null)
     const slicesRef = useRef([])
+    const tooltipLeaveTimerRef = useRef(null)
     const [hovered, setHovered] = useState(-1)
     const [tooltip, setTooltip] = useState(null)
+
+    const cancelTooltipHide = useCallback(() => {
+        if (tooltipLeaveTimerRef.current != null) {
+            clearTimeout(tooltipLeaveTimerRef.current)
+            tooltipLeaveTimerRef.current = null
+        }
+    }, [])
+
+    useEffect(() => () => cancelTooltipHide(), [cancelTooltipHide])
 
     useEffect(() => {
         const wrap = wrapRef.current
@@ -211,56 +221,93 @@ export default function Pie3DChart({ data, height = 260, showPercentLabels = tru
 
         const idx = hitTest(mx, my, geo.cx, geo.cy, geo.rx, geo.ry, slicesRef.current)
         setHovered(idx)
+        cancelTooltipHide()
 
         if (idx >= 0) {
             canvas.style.cursor = "pointer"
             const sl = slicesRef.current[idx]
-            setTooltip({ x: mx, y: my, name: sl.name, value: sl.value, pct: sl.pct, fill: sl.fill, subs: sl.subs })
+            setTooltip({
+                clientX: e.clientX,
+                clientY: e.clientY,
+                name: sl.name,
+                value: sl.value,
+                pct: sl.pct,
+                fill: sl.fill,
+                subs: sl.subs,
+            })
         } else {
             canvas.style.cursor = "default"
             setTooltip(null)
         }
-    }, [])
+    }, [cancelTooltipHide])
 
-    const handleMouseLeave = useCallback(() => {
+    /** Delay hide so the pointer can move from the canvas onto the fixed tooltip (for scrolling). */
+    const handleCanvasMouseLeave = useCallback(() => {
+        cancelTooltipHide()
+        tooltipLeaveTimerRef.current = window.setTimeout(() => {
+            tooltipLeaveTimerRef.current = null
+            setHovered(-1)
+            setTooltip(null)
+            if (canvasRef.current) canvasRef.current.style.cursor = "default"
+        }, 200)
+    }, [cancelTooltipHide])
+
+    const handleRichTooltipMouseLeave = useCallback(() => {
+        cancelTooltipHide()
         setHovered(-1)
         setTooltip(null)
         if (canvasRef.current) canvasRef.current.style.cursor = "default"
-    }, [])
+    }, [cancelTooltipHide])
+
+    const tooltipMargin = 14
+    const estimatedRichHeight =
+        tooltip && tooltip.subs !== undefined
+            ? 96 + (tooltip.subs.length > 0 ? tooltip.subs.length * 52 : 0)
+            : 0
+    const flipBelow =
+        tooltip &&
+        tooltip.clientY < Math.min(estimatedRichHeight + tooltipMargin + 24, 280)
 
     return (
         <div ref={wrapRef} style={{ width: "100%", height, position: "relative" }}>
             <canvas
                 ref={canvasRef}
+                className="block w-full"
                 onMouseMove={handleMouseMove}
-                onMouseLeave={handleMouseLeave}
+                onMouseLeave={handleCanvasMouseLeave}
             />
             {tooltip && (
                 tooltip.subs !== undefined ? (
                     /* ── Rich card: Calls Overview only (subs explicitly provided) ── */
+                    /* fixed + viewport coords: avoids wrong placement inside scroll/transform layouts */
                     <div
-                        className="pointer-events-none absolute z-50"
+                        className="pointer-events-none fixed z-[100]"
                         style={{
-                            left: tooltip.x,
-                            top: tooltip.y - (tooltip.subs.length > 0 ? 40 + tooltip.subs.length * 48 + 72 : 72),
-                            transform: "translateX(-50%)",
+                            left: tooltip.clientX,
+                            top: tooltip.clientY,
+                            transform: flipBelow
+                                ? `translate(-50%, ${tooltipMargin}px)`
+                                : `translate(-50%, calc(-100% - ${tooltipMargin}px))`,
                             width: 320,
+                            maxWidth: "min(320px, calc(100vw - 24px))",
                             filter: "drop-shadow(0 8px 24px rgba(0,0,0,0.18))",
                         }}
                     >
                         <div
-                            className="rounded-2xl overflow-hidden"
+                            className="pointer-events-auto rounded-2xl overflow-hidden flex flex-col max-h-[min(520px,calc(100vh-40px))]"
                             style={{
                                 backgroundColor: "var(--background)",
                                 border: `1.5px solid ${tooltip.fill}40`,
                                 boxShadow: `0 0 0 1px ${tooltip.fill}18, 0 4px 32px ${tooltip.fill}22`,
                             }}
+                            onMouseEnter={cancelTooltipHide}
+                            onMouseLeave={handleRichTooltipMouseLeave}
                         >
                             {/* Coloured top accent bar */}
                             <div style={{ height: 3, background: `linear-gradient(90deg, ${tooltip.fill}, ${tooltip.fill}88)` }} />
 
                             {/* Header */}
-                            <div className="flex items-center justify-between gap-2 px-4 pt-3 pb-2.5">
+                            <div className="flex shrink-0 items-center justify-between gap-2 px-4 pt-3 pb-2.5">
                                 <div className="flex items-center gap-2 min-w-0">
                                     <span
                                         className="inline-block w-2.5 h-2.5 rounded-full shrink-0"
@@ -283,20 +330,22 @@ export default function Pie3DChart({ data, height = 260, showPercentLabels = tru
                                 </div>
                             </div>
 
-                            {/* Sub-concern rows */}
+                            {/* Sub-concern rows — flex-1 min-h-0 so overflow-y scrolls fully; pb for last bar */}
                             {tooltip.subs.length > 0 ? (() => {
                                 const maxVal = tooltip.subs[0].value || 1
                                 return (
                                     <>
-                                        <div className="mx-4 mb-2" style={{ height: 1, backgroundColor: `${tooltip.fill}20` }} />
-                                        <div className="px-4 pb-3 space-y-2.5">
+                                        <div className="mx-4 mb-2 shrink-0" style={{ height: 1, backgroundColor: `${tooltip.fill}20` }} />
+                                        <div
+                                            className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pt-0 pb-5 space-y-2.5 [scrollbar-gutter:stable]"
+                                        >
                                             <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
                                                 Breakdown by concern
                                             </p>
                                             {tooltip.subs.map((sub) => {
                                                 const pct = Math.round((sub.value / maxVal) * 100)
                                                 return (
-                                                    <div key={sub.name} className="space-y-0.5">
+                                                    <div key={sub.name} className="space-y-0.5 pb-0.5">
                                                         <div className="flex items-center justify-between gap-2">
                                                             <span className="text-xs text-foreground/80 leading-snug">
                                                                 {sub.name}
@@ -322,7 +371,7 @@ export default function Pie3DChart({ data, height = 260, showPercentLabels = tru
                                     </>
                                 )
                             })() : (
-                                <div className="px-4 pb-3">
+                                <div className="px-4 pb-3 shrink-0">
                                     <div className="mb-2" style={{ height: 1, backgroundColor: `${tooltip.fill}20` }} />
                                     <p className="text-[10px] text-muted-foreground/40 italic">No subconcern data</p>
                                 </div>
@@ -342,11 +391,14 @@ export default function Pie3DChart({ data, height = 260, showPercentLabels = tru
                 ) : (
                     /* ── Simple classic tooltip: all other pie charts ── */
                     <div
-                        className="pointer-events-none absolute z-50 rounded-xl px-3 py-2.5"
+                        className="pointer-events-none fixed z-[100] rounded-xl px-3 py-2.5"
                         style={{
-                            left: tooltip.x,
-                            top: tooltip.y - 64,
-                            transform: "translateX(-50%)",
+                            left: tooltip.clientX,
+                            top: tooltip.clientY,
+                            transform:
+                                tooltip.clientY < 100
+                                    ? `translate(-50%, ${tooltipMargin}px)`
+                                    : `translate(-50%, calc(-100% - ${tooltipMargin}px))`,
                             backgroundColor: "var(--background)",
                             border: "1px solid hsl(var(--border))",
                             boxShadow: "0 4px 16px rgba(0,0,0,0.12)",
