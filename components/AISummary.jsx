@@ -364,9 +364,10 @@ export default function AISummary({ onFetch, aiSummaryData, aiSummaryLoading, st
     return (
         <Card className="mb-8 border-2 border-primary/20">
             <CardHeader>
-                <div className="flex items-center justify-between flex-wrap gap-4">
-                    <div>
-                        <CardTitle className="flex items-center gap-2 mb-1">
+                <div className="flex items-start justify-between flex-wrap gap-4">
+                    {/* Title + description + toggle pills */}
+                    <div className="flex flex-col gap-2">
+                        <CardTitle className="flex items-center gap-2">
                             <Brain className="w-6 h-6 text-primary" />
                             AI Performance Summary
                         </CardTitle>
@@ -378,10 +379,8 @@ export default function AISummary({ onFetch, aiSummaryData, aiSummaryLoading, st
                                 </span>
                             )}
                         </CardDescription>
-                    </div>
-                    <div className="flex items-center gap-3 flex-wrap">
-                        {/* Viz toggle pills */}
-                        <div className="flex items-center gap-1 p-1 rounded-xl bg-muted/60 border border-border">
+                        {/* Viz toggle pills sit under the description */}
+                        <div className="flex items-center gap-1 p-1 rounded-xl bg-muted/60 border border-border w-fit mt-1">
                             {VIZ_OPTIONS.map((opt) => {
                                 const Icon = opt.icon
                                 const active = vizType === opt.id
@@ -401,6 +400,10 @@ export default function AISummary({ onFetch, aiSummaryData, aiSummaryLoading, st
                                 )
                             })}
                         </div>
+                    </div>
+
+                    {/* Action buttons pinned to the right */}
+                    <div className="flex items-center gap-2 shrink-0">
                         <Button variant="outline" size="sm" onClick={onFetch} disabled={aiSummaryLoading}>
                             <RefreshCw className={`w-4 h-4 mr-2 ${aiSummaryLoading ? "animate-spin" : ""}`} />
                             Refresh
