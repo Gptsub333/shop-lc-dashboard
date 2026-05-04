@@ -1,6 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Brain, RefreshCw, TrendingUp, TrendingDown, Phone, PhoneForwarded, PhoneCall, CheckCircle2, XCircle, Users, HelpCircle, BarChart2, Download } from "lucide-react"
+import { Brain, RefreshCw, TrendingUp, TrendingDown, Phone, PhoneForwarded, PhoneCall, CheckCircle2, XCircle, Users, HelpCircle, BarChart2, Download, Activity, GitBranch } from "lucide-react"
+import { useState } from "react"
 import DatePickerYMD from "./DatePickerYMD"
 import {
     AreaChart,
@@ -61,6 +62,98 @@ function StatCard({ icon: Icon, iconColor, label, value, sub, pct, trend }) {
         </div>
     )
 }
+
+// ── Call Flow Tree View ──────────────────────────────────────────────────────
+function lightBadgeBg(hex) {
+    const n = parseInt(hex.replace("#", ""), 16)
+    const r = Math.round(((n >> 16) & 0xff) * 0.18 + 237)
+    const g = Math.round(((n >> 8)  & 0xff) * 0.18 + 237)
+    const b = Math.round(((n)       & 0xff) * 0.18 + 237)
+    return `rgb(${r},${g},${b})`
+}
+
+function CallFlowDiagram({ totals }) {
+    if (!totals) return null
+
+    const pcts          = totals.percentages
+    const uncategorized = Math.max(0, totals.ai_handled_total - (totals.ai_solved_total + totals.ai_failed_total))
+    const uncatPct      = totals.ai_handled_total > 0
+        ? parseFloat(((uncategorized / totals.ai_handled_total) * 100).toFixed(1))
+        : 0
+    const deflPct = parseFloat((100 - (pcts?.transferred_overall ?? 0)).toFixed(1))
+
+    const W = 760, BW = 126, BH = 62, H_GAP = 10, V_GAP = 72
+
+    const r3W     = 5 * BW + 4 * H_GAP
+    const r3Start = (W - r3W) / 2
+    const r3cx    = [0, 1, 2, 3, 4].map((i) => r3Start + i * (BW + H_GAP) + BW / 2)
+    const r2cx    = [(r3cx[0] + r3cx[1]) / 2, (r3cx[2] + r3cx[4]) / 2]
+    const r1cx    = [(r2cx[0] + r2cx[1]) / 2]
+
+    const y1 = 14, y2 = y1 + BH + V_GAP, y3 = y2 + BH + V_GAP
+    const SVG_H = y3 + BH + 22
+
+    const nodes = [
+        { id: "total", cx: r1cx[0], y: y1, label: "Total Calls",    value: totals.total_calls,                   color: "#06b6d4" },
+        { id: "xfer",  cx: r2cx[0], y: y2, label: "Transferred",    value: totals.transferred_total,             color: "#f59e0b" },
+        { id: "defl",  cx: r2cx[1], y: y2, label: "AI Deflected",   value: totals.ai_handled_total,              color: "#8b5cf6" },
+        { id: "ureq",  cx: r3cx[0], y: y3, label: "User Requested", value: totals.user_requested_transfer_total, color: "#f97316" },
+        { id: "ainit", cx: r3cx[1], y: y3, label: "AI Initiated",   value: totals.ai_initiated_transfer_total,   color: "#eab308" },
+        { id: "solv",  cx: r3cx[2], y: y3, label: "AI Solved",      value: totals.ai_solved_total,               color: "#22c55e" },
+        { id: "unres", cx: r3cx[3], y: y3, label: "AI Unresolved",  value: totals.ai_failed_total,               color: "#ef4444" },
+        { id: "uncat", cx: r3cx[4], y: y3, label: "Uncategorized",  value: uncategorized,                        color: "#64748b" },
+    ]
+
+    const edges = [
+        { from: "total", to: "xfer",  label: `${pcts?.transferred_overall ?? 0}%`             },
+        { from: "total", to: "defl",  label: `${deflPct}%`                                    },
+        { from: "xfer",  to: "ureq",  label: `${pcts?.user_requested_transfer_overall ?? 0}%` },
+        { from: "xfer",  to: "ainit", label: `${pcts?.ai_initiated_transfer_overall ?? 0}%`   },
+        { from: "defl",  to: "solv",  label: `${pcts?.ai_solved_of_ai_handled ?? 0}%`         },
+        { from: "defl",  to: "unres", label: `${pcts?.ai_failed_of_ai_handled ?? 0}%`         },
+        { from: "defl",  to: "uncat", label: `${uncatPct}%`                                   },
+    ]
+
+    const nm = Object.fromEntries(nodes.map((n) => [n.id, n]))
+
+    function pathD(a, b) {
+        const my = (a.y + BH + b.y) / 2
+        return `M ${a.cx} ${a.y + BH} C ${a.cx} ${my}, ${b.cx} ${my}, ${b.cx} ${b.y}`
+    }
+
+    return (
+        <svg viewBox={`0 0 ${W} ${SVG_H}`} width="100%" style={{ overflow: "visible" }} aria-label="Call flow diagram">
+            {edges.map(({ from, to, label }) => {
+                const a = nm[from], b = nm[to]
+                const mx = (a.cx + b.cx) / 2, my = (a.y + BH + b.y) / 2
+                return (
+                    <g key={`${from}-${to}`}>
+                        <path d={pathD(a, b)} fill="none" stroke={b.color} strokeWidth="1.8" strokeOpacity="0.35" />
+                        <rect x={mx - 19} y={my - 9} width={38} height={17} rx={5}
+                              fill={lightBadgeBg(b.color)} stroke={b.color} strokeOpacity="0.55" strokeWidth="1" />
+                        <text x={mx} y={my + 3.5} textAnchor="middle" fontSize="9.5" fontWeight="700"
+                              fill={b.color} fontFamily="system-ui,sans-serif">{label}</text>
+                    </g>
+                )
+            })}
+            {nodes.map((n) => (
+                <g key={n.id}>
+                    <rect x={n.cx - BW / 2} y={n.y} width={BW} height={BH} rx={11}
+                          fill={`${n.color}14`} stroke={n.color} strokeWidth="1.5" strokeOpacity="0.6" />
+                    <text x={n.cx} y={n.y + 27} textAnchor="middle" fontSize="22" fontWeight="800"
+                          fill={n.color} fontFamily="system-ui,sans-serif">{n.value}</text>
+                    <text x={n.cx} y={n.y + 44} textAnchor="middle" fontSize="10.5" fill="#94a3b8"
+                          fontFamily="system-ui,sans-serif">{n.label}</text>
+                </g>
+            ))}
+        </svg>
+    )
+}
+
+const VIZ_OPTIONS = [
+    { id: "area",   label: "Peak Calls", icon: Activity  },
+    { id: "funnel", label: "Tree View",  icon: GitBranch },
+]
 
 const CustomTooltip = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
@@ -259,6 +352,8 @@ async function downloadExcel(aiSummaryData) {
 }
 
 export default function AISummary({ onFetch, aiSummaryData, aiSummaryLoading, startDate, setStartDate, endDate, setEndDate }) {
+    const [vizType, setVizType] = useState("area")
+
     const chartData = buildHourlyChartData(aiSummaryData)
     const totals = aiSummaryData?.totals
     const pcts = totals?.percentages
@@ -269,9 +364,10 @@ export default function AISummary({ onFetch, aiSummaryData, aiSummaryLoading, st
     return (
         <Card className="mb-8 border-2 border-primary/20">
             <CardHeader>
-                <div className="flex items-center justify-between flex-wrap gap-4">
-                    <div>
-                        <CardTitle className="flex items-center gap-2 mb-1">
+                <div className="flex items-start justify-between flex-wrap gap-4">
+                    {/* Title + description + toggle pills */}
+                    <div className="flex flex-col gap-2">
+                        <CardTitle className="flex items-center gap-2">
                             <Brain className="w-6 h-6 text-primary" />
                             AI Performance Summary
                         </CardTitle>
@@ -283,8 +379,31 @@ export default function AISummary({ onFetch, aiSummaryData, aiSummaryLoading, st
                                 </span>
                             )}
                         </CardDescription>
+                        {/* Viz toggle pills sit under the description */}
+                        <div className="flex items-center gap-1 p-1 rounded-xl bg-muted/60 border border-border w-fit mt-1">
+                            {VIZ_OPTIONS.map((opt) => {
+                                const Icon = opt.icon
+                                const active = vizType === opt.id
+                                return (
+                                    <button
+                                        key={opt.id}
+                                        onClick={() => setVizType(opt.id)}
+                                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-150 ${
+                                            active
+                                                ? "bg-background shadow-sm text-foreground border border-border"
+                                                : "text-muted-foreground hover:text-foreground hover:bg-background/60"
+                                        }`}
+                                    >
+                                        <Icon className="w-3.5 h-3.5" />
+                                        {opt.label}
+                                    </button>
+                                )
+                            })}
+                        </div>
                     </div>
-                    <div className="flex items-center gap-2">
+
+                    {/* Action buttons pinned to the right */}
+                    <div className="flex items-center gap-2 shrink-0">
                         <Button variant="outline" size="sm" onClick={onFetch} disabled={aiSummaryLoading}>
                             <RefreshCw className={`w-4 h-4 mr-2 ${aiSummaryLoading ? "animate-spin" : ""}`} />
                             Refresh
@@ -331,67 +450,83 @@ export default function AISummary({ onFetch, aiSummaryData, aiSummaryLoading, st
                     </div>
                 ) : (
                     <div className="space-y-6">
-                        {/* ── Wave chart ─────────────────────────────────────── */}
-                        <div>
-                            <div className="flex items-center justify-between mb-3">
-                                <div>
-                                    <p className="text-sm font-semibold text-foreground">Intraday Call Volume (Pattern)</p>
-                                    <p className="text-xs text-muted-foreground">
-                                        Estimated call distribution across 24 hours
-                                        {peakEntry.calls > 0 && (
-                                            <span className="ml-2 text-primary font-medium">
-                                                · Peak: {peakEntry.hour} ({peakEntry.calls} calls)
-                                            </span>
-                                        )}
-                                    </p>
+                        {/* ── Peak Calls area chart ──────────────────────────── */}
+                        {vizType === "area" && (
+                            <div>
+                                <div className="flex items-center justify-between mb-3">
+                                    <div>
+                                        <p className="text-sm font-semibold text-foreground">Intraday Call Volume (Pattern)</p>
+                                        <p className="text-xs text-muted-foreground">
+                                            Estimated call distribution across 24 hours
+                                            {peakEntry.calls > 0 && (
+                                                <span className="ml-2 text-primary font-medium">
+                                                    · Peak: {peakEntry.hour} ({peakEntry.calls} calls)
+                                                </span>
+                                            )}
+                                        </p>
+                                    </div>
+                                </div>
+                                <div className="rounded-xl overflow-hidden border bg-card">
+                                    <ResponsiveContainer width="100%" height={240}>
+                                        <AreaChart data={chartData} margin={{ top: 16, right: 16, left: 0, bottom: 0 }}>
+                                            <defs>
+                                                <linearGradient id="callsGradient" x1="0" y1="0" x2="0" y2="1">
+                                                    <stop offset="0%" stopColor="#06b6d4" stopOpacity={0.35} />
+                                                    <stop offset="100%" stopColor="#06b6d4" stopOpacity={0} />
+                                                </linearGradient>
+                                            </defs>
+                                            <CartesianGrid strokeDasharray="3 3" opacity={0.08} vertical={false} />
+                                            <XAxis
+                                                dataKey="hour"
+                                                tick={{ fontSize: 10 }}
+                                                tickLine={false}
+                                                axisLine={false}
+                                                interval={2}
+                                            />
+                                            <YAxis
+                                                tick={{ fontSize: 10 }}
+                                                tickLine={false}
+                                                axisLine={false}
+                                                width={32}
+                                            />
+                                            <Tooltip content={<CustomTooltip />} />
+                                            {peakEntry.calls > 0 && (
+                                                <ReferenceLine
+                                                    x={peakEntry.hour}
+                                                    stroke="#f59e0b"
+                                                    strokeDasharray="4 4"
+                                                    strokeWidth={1.5}
+                                                    label={{ value: "Peak", position: "top", fontSize: 10, fill: "#f59e0b" }}
+                                                />
+                                            )}
+                                            <Area
+                                                type="monotone"
+                                                dataKey="calls"
+                                                stroke="#06b6d4"
+                                                strokeWidth={2.5}
+                                                fill="url(#callsGradient)"
+                                                dot={false}
+                                                activeDot={{ r: 4, fill: "#06b6d4", stroke: "white", strokeWidth: 2 }}
+                                            />
+                                        </AreaChart>
+                                    </ResponsiveContainer>
                                 </div>
                             </div>
-                            <div className="rounded-xl overflow-hidden border bg-card">
-                                <ResponsiveContainer width="100%" height={240}>
-                                    <AreaChart data={chartData} margin={{ top: 16, right: 16, left: 0, bottom: 0 }}>
-                                        <defs>
-                                            <linearGradient id="callsGradient" x1="0" y1="0" x2="0" y2="1">
-                                                <stop offset="0%" stopColor="#06b6d4" stopOpacity={0.35} />
-                                                <stop offset="100%" stopColor="#06b6d4" stopOpacity={0} />
-                                            </linearGradient>
-                                        </defs>
-                                        <CartesianGrid strokeDasharray="3 3" opacity={0.08} vertical={false} />
-                                        <XAxis
-                                            dataKey="hour"
-                                            tick={{ fontSize: 10 }}
-                                            tickLine={false}
-                                            axisLine={false}
-                                            interval={2}
-                                        />
-                                        <YAxis
-                                            tick={{ fontSize: 10 }}
-                                            tickLine={false}
-                                            axisLine={false}
-                                            width={32}
-                                        />
-                                        <Tooltip content={<CustomTooltip />} />
-                                        {peakEntry.calls > 0 && (
-                                            <ReferenceLine
-                                                x={peakEntry.hour}
-                                                stroke="#f59e0b"
-                                                strokeDasharray="4 4"
-                                                strokeWidth={1.5}
-                                                label={{ value: "Peak", position: "top", fontSize: 10, fill: "#f59e0b" }}
-                                            />
-                                        )}
-                                        <Area
-                                            type="monotone"
-                                            dataKey="calls"
-                                            stroke="#06b6d4"
-                                            strokeWidth={2.5}
-                                            fill="url(#callsGradient)"
-                                            dot={false}
-                                            activeDot={{ r: 4, fill: "#06b6d4", stroke: "white", strokeWidth: 2 }}
-                                        />
-                                    </AreaChart>
-                                </ResponsiveContainer>
+                        )}
+
+                        {/* ── Tree View (call flow) ───────────────────────────── */}
+                        {vizType === "funnel" && (
+                            <div>
+                                <div className="flex items-center gap-2 mb-5">
+                                    <GitBranch className="w-4 h-4 text-muted-foreground" />
+                                    <p className="text-sm font-semibold text-foreground">Call Flow — Tree View</p>
+                                    <span className="text-xs text-muted-foreground">— how calls were routed at each stage</span>
+                                </div>
+                                <div className="py-2 px-2">
+                                    <CallFlowDiagram totals={totals} />
+                                </div>
                             </div>
-                        </div>
+                        )}
 
                         {/* ── Metrics grid ───────────────────────────────────── */}
                         {totals && (
