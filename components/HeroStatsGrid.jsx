@@ -1,9 +1,9 @@
 import { Card, CardContent } from "@/components/ui/card"
-import { Phone, PhoneCall, Clock, Activity, RefreshCw } from "lucide-react"
+import { Phone, PhoneCall, Clock, Activity, RefreshCw, PhoneOff } from "lucide-react"
 
 export default function HeroStatsGrid({ activeCalls, stats, onRefreshActiveCalls }) {
     return (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
             {/* Active Calls */}
             <Card className="relative overflow-hidden border-l-4 border-l-green-500">
                 <CardContent className="p-6">
@@ -75,6 +75,22 @@ export default function HeroStatsGrid({ activeCalls, stats, onRefreshActiveCalls
                         </div>
                         <div className="w-14 h-14 rounded-full bg-purple-500/10 flex items-center justify-center">
                             <Activity className="w-7 h-7 text-purple-500" />
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
+
+            {/* Abandoned Calls */}
+            <Card className="relative overflow-hidden border-l-4 border-l-slate-500">
+                <CardContent className="p-6">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <p className="text-sm font-medium text-muted-foreground mb-1">Abandoned Calls</p>
+                            <p className="text-3xl font-bold text-foreground">{stats?.call_abandoned_total || 0}</p>
+                            <p className="text-xs text-muted-foreground mt-2">{stats?.ai_percentages?.abandoned_overall?.toFixed(1) || 0}% of total calls</p>
+                        </div>
+                        <div className="w-14 h-14 rounded-full bg-slate-500/10 flex items-center justify-center">
+                            <PhoneOff className="w-7 h-7 text-slate-500" />
                         </div>
                     </div>
                 </CardContent>
