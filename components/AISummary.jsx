@@ -183,8 +183,37 @@ function CallFlowDiagram({ totals }) {
     if (!totals) return null
 
     const pcts = totals.percentages
-    const deflPct = parseFloat((100 - (pcts?.transferred_overall ?? 0)).toFixed(1))
+
+    // Align with StatCards: new API fields with legacy fallbacks
+    const deflected = totals.deflected_calls ?? totals.ai_handled_total ?? 0
+    const resolved  = totals.ai_resolved ?? totals.ai_solved_total ?? 0
+    const unresolved = totals.ai_unresolved ?? totals.ai_failed_total ?? 0
     const abandonedCalls = totals.call_abandoned_total || 0
+
+    const transferredPct = totals.transferred_percentage ?? pcts?.transferred_overall ?? 0
+    const deflectedPctLabel = totals.ai_deflected_percentage
+        ?? parseFloat((100 - transferredPct).toFixed(1))
+
+    const ureqPct = totals.user_requested_transfer_percentage ?? pcts?.user_requested_transfer_overall ?? 0
+    const ainitPct = totals.ai_initiated_transfer_percentage ?? pcts?.ai_initiated_transfer_overall ?? 0
+
+    const solvPctOfDefl =
+        deflected > 0
+            ? parseFloat(((resolved / deflected) * 100).toFixed(1))
+            : (pcts?.ai_solved_of_ai_handled ?? 0)
+    const unresPctOfDefl =
+        totals.ai_unresolved_percentage != null
+            ? totals.ai_unresolved_percentage
+            : deflected > 0
+              ? parseFloat(((unresolved / deflected) * 100).toFixed(1))
+              : (pcts?.ai_failed_of_ai_handled ?? 0)
+
+    const abandonPctOfDefl =
+        totals.abandoned_of_deflected_percentage != null
+            ? totals.abandoned_of_deflected_percentage
+            : deflected > 0
+              ? parseFloat(((abandonedCalls / deflected) * 100).toFixed(1))
+              : 0
 
     const W = 760, BW = 126, BH = 62, H_GAP = 10, V_GAP = 72
 
@@ -200,22 +229,22 @@ function CallFlowDiagram({ totals }) {
     const nodes = [
         { id: "total", cx: r1cx[0], y: y1, label: "Total Calls",    value: totals.total_calls,                   color: "#06b6d4" },
         { id: "xfer",  cx: r2cx[0], y: y2, label: "Transferred",    value: totals.transferred_total,             color: "#f59e0b" },
-        { id: "defl",  cx: r2cx[1], y: y2, label: "AI Deflected",   value: totals.ai_handled_total,              color: "#8b5cf6" },
+        { id: "defl",  cx: r2cx[1], y: y2, label: "AI Deflected",   value: deflected,                            color: "#8b5cf6" },
         { id: "ureq",  cx: r3cx[0], y: y3, label: "User Requested", value: totals.user_requested_transfer_total, color: "#f97316" },
         { id: "ainit", cx: r3cx[1], y: y3, label: "AI Initiated",   value: totals.ai_initiated_transfer_total,   color: "#eab308" },
-        { id: "solv",  cx: r3cx[2], y: y3, label: "AI Solved",      value: totals.ai_solved_total,               color: "#22c55e" },
-        { id: "unres", cx: r3cx[3], y: y3, label: "AI Unresolved",  value: totals.ai_failed_total,               color: "#ef4444" },
+        { id: "solv",  cx: r3cx[2], y: y3, label: "AI Solved",      value: resolved,                             color: "#22c55e" },
+        { id: "unres", cx: r3cx[3], y: y3, label: "AI Unresolved",  value: unresolved,                           color: "#ef4444" },
         { id: "aband", cx: r3cx[4], y: y3, label: "Abandoned",      value: abandonedCalls,                       color: "#64748b" },
     ]
 
     const edges = [
-        { from: "total", to: "xfer",  label: `${pcts?.transferred_overall ?? 0}%`             },
-        { from: "total", to: "defl",  label: `${deflPct}%`                                    },
-        { from: "xfer",  to: "ureq",  label: `${pcts?.user_requested_transfer_overall ?? 0}%` },
-        { from: "xfer",  to: "ainit", label: `${pcts?.ai_initiated_transfer_overall ?? 0}%`   },
-        { from: "defl",  to: "solv",  label: `${pcts?.ai_solved_of_ai_handled ?? 0}%`         },
-        { from: "defl",  to: "unres", label: `${pcts?.ai_failed_of_ai_handled ?? 0}%`         },
-        { from: "total", to: "aband", label: `${pcts?.abandoned_overall ?? 0}%`               },
+        { from: "total", to: "xfer",  label: `${transferredPct}%` },
+        { from: "total", to: "defl",  label: `${deflectedPctLabel}%` },
+        { from: "xfer",  to: "ureq",  label: `${ureqPct}%` },
+        { from: "xfer",  to: "ainit", label: `${ainitPct}%` },
+        { from: "defl",  to: "solv",  label: `${solvPctOfDefl}%` },
+        { from: "defl",  to: "unres", label: `${unresPctOfDefl}%` },
+        { from: "defl",  to: "aband", label: `${abandonPctOfDefl}%` },
     ]
 
     const nm = Object.fromEntries(nodes.map((n) => [n.id, n]))
@@ -229,10 +258,12 @@ function CallFlowDiagram({ totals }) {
         <svg viewBox={`0 0 ${W} ${SVG_H}`} width="100%" style={{ overflow: "visible" }} aria-label="Call flow diagram">
             {edges.map(({ from, to, label }) => {
                 const a = nm[from], b = nm[to]
-                const mx = (a.cx + b.cx) / 2, my = (a.y + BH + b.y) / 2
+                const d = pathD(a, b)
+                const mx = (a.cx + b.cx) / 2
+                const my = (a.y + BH + b.y) / 2
                 return (
                     <g key={`${from}-${to}`}>
-                        <path d={pathD(a, b)} fill="none" stroke={b.color} strokeWidth="1.8" strokeOpacity="0.35" />
+                        <path d={d} fill="none" stroke={b.color} strokeWidth="1.8" strokeOpacity="0.35" />
                         <rect x={mx - 19} y={my - 9} width={38} height={17} rx={5}
                               fill={lightBadgeBg(b.color)} stroke={b.color} strokeOpacity="0.55" strokeWidth="1" />
                         <text x={mx} y={my + 3.5} textAnchor="middle" fontSize="9.5" fontWeight="700"
