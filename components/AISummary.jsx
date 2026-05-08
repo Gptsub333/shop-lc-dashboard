@@ -1,6 +1,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Brain, RefreshCw, TrendingUp, TrendingDown, Phone, PhoneForwarded, PhoneCall, CheckCircle2, XCircle, Users, HelpCircle, BarChart2, Download, Activity, GitBranch } from "lucide-react"
+import { Brain, RefreshCw, TrendingUp, TrendingDown, Phone, PhoneForwarded, PhoneCall, CheckCircle2, XCircle, Users, HelpCircle, BarChart2, Download, Activity, GitBranch, AlertCircle } from "lucide-react"
 import { useState } from "react"
 import DatePickerYMD from "./DatePickerYMD"
 import {
@@ -21,6 +21,85 @@ const HOURS = [
     "6pm", "7pm", "8pm", "9pm", "10pm", "11pm"
 ]
 
+function DailyRow({ day, index }) {
+    const [showDeflectedTooltip, setShowDeflectedTooltip] = useState(false)
+    const [showResolvedTooltip, setShowResolvedTooltip] = useState(false)
+    
+    return (
+        <tr className="border-t hover:bg-muted/20 transition-colors">
+            <td className="py-3 px-4 font-medium text-foreground whitespace-nowrap">{day.date}</td>
+            <td className="py-3 px-4 text-foreground">{day.total_calls}</td>
+            <td className="py-3 px-4">
+                <span className="text-amber-500 font-medium">{day.transferred_total}</span>
+                <span className="text-xs text-muted-foreground ml-1">({day.transferred_percentage}%)</span>
+            </td>
+            <td className="py-3 px-4">
+                <span className="text-orange-500 font-medium">{day.user_requested_transfer_total}</span>
+                <span className="text-xs text-muted-foreground ml-1">({day.user_requested_transfer_percentage}%)</span>
+            </td>
+            <td className="py-3 px-4">
+                <span className="text-rose-500 font-medium">{day.ai_initiated_transfer_total}</span>
+                <span className="text-xs text-muted-foreground ml-1">({day.ai_initiated_transfer_percentage}%)</span>
+            </td>
+            <td 
+                className="py-3 px-4 relative"
+                onMouseEnter={() => setShowDeflectedTooltip(true)}
+                onMouseLeave={() => setShowDeflectedTooltip(false)}
+            >
+                <span className="text-purple-500 font-medium cursor-help">{day.deflected_calls || 0}</span>
+                {day.deflected_calls_hover && showDeflectedTooltip && (
+                    <div className="absolute z-10 bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-background border border-border rounded-lg shadow-lg whitespace-nowrap">
+                        <div className="text-xs space-y-1">
+                            <div className="flex items-center gap-2">
+                                <span className="text-emerald-500 font-semibold">Scope-in:</span>
+                                <span className="text-foreground">{day.deflected_calls_hover.scope_in}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <span className="text-amber-500 font-semibold">Scope-out:</span>
+                                <span className="text-foreground">{day.deflected_calls_hover.scope_out}</span>
+                            </div>
+                        </div>
+                        <div className="absolute top-full left-1/2 transform -translate-x-1/2 -mt-1">
+                            <div className="w-2 h-2 bg-background border-r border-b border-border rotate-45"></div>
+                        </div>
+                    </div>
+                )}
+            </td>
+            <td 
+                className="py-3 px-4 relative"
+                onMouseEnter={() => setShowResolvedTooltip(true)}
+                onMouseLeave={() => setShowResolvedTooltip(false)}
+            >
+                <span className="text-emerald-500 font-medium cursor-help">{day.ai_resolved || 0}</span>
+                {day.ai_resolved_hover && showResolvedTooltip && (
+                    <div className="absolute z-10 bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-background border border-border rounded-lg shadow-lg whitespace-nowrap">
+                        <div className="text-xs space-y-1">
+                            <div className="flex items-center gap-2">
+                                <span className="text-emerald-500 font-semibold">Scope-in:</span>
+                                <span className="text-foreground">{day.ai_resolved_hover.scope_in}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <span className="text-amber-500 font-semibold">Scope-out:</span>
+                                <span className="text-foreground">{day.ai_resolved_hover.scope_out}</span>
+                            </div>
+                        </div>
+                        <div className="absolute top-full left-1/2 transform -translate-x-1/2 -mt-1">
+                            <div className="w-2 h-2 bg-background border-r border-b border-border rotate-45"></div>
+                        </div>
+                    </div>
+                )}
+            </td>
+            <td className="py-3 px-4">
+                <span className="text-red-500 font-medium">{day.ai_unresolved || 0}</span>
+                <span className="text-xs text-muted-foreground ml-1">({day.ai_unresolved_percentage}%)</span>
+            </td>
+            <td className="py-3 px-4">
+                <span className="text-slate-500 font-medium">{day.call_abandoned_total || 0}</span>
+            </td>
+        </tr>
+    )
+}
+
 function buildHourlyChartData(aiSummaryData) {
     if (!aiSummaryData) return []
 
@@ -36,17 +115,26 @@ function buildHourlyChartData(aiSummaryData) {
     return HOURS.map((label, i) => ({ hour: label, calls: peakHours[i] ?? 0 }))
 }
 
-function StatCard({ icon: Icon, iconColor, label, value, sub, pct, trend }) {
+function StatCard({ icon: Icon, iconColor, label, value, sub, pct, trend, hoverData }) {
     const trendUp = trend >= 0
+    const [showTooltip, setShowTooltip] = useState(false)
+    
     return (
-        <div className="relative overflow-hidden rounded-2xl border border-border/60 bg-gradient-to-br from-background via-background to-muted/70 shadow-sm hover:shadow-lg transition-all duration-200">
-            <div className="pointer-events-none absolute inset-0 bg-gradient-to-tr from-white/10 via-transparent to-primary/10 opacity-80" />
+        <div 
+            className="relative rounded-2xl border border-border/60 bg-gradient-to-br from-background via-background to-muted/70 shadow-sm hover:shadow-lg transition-all duration-200"
+            onMouseEnter={() => hoverData && setShowTooltip(true)}
+            onMouseLeave={() => hoverData && setShowTooltip(false)}
+        >
+            <div className="pointer-events-none absolute inset-0 bg-gradient-to-tr from-white/10 via-transparent to-primary/10 opacity-80 rounded-2xl overflow-hidden" />
             <div className="relative flex items-start gap-3 p-4">
                 <div className={`mt-0.5 w-9 h-9 rounded-xl flex items-center justify-center shadow-sm bg-white/70 backdrop-blur-sm ${iconColor}`}>
                     <Icon className="w-4 h-4" />
                 </div>
                 <div className="flex-1 min-w-0">
-                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground mb-1">{label}</p>
+                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground mb-1">
+                        {label}
+                        {hoverData && <span className="ml-1 text-primary">ⓘ</span>}
+                    </p>
                     <p className="text-2xl md:text-3xl font-semibold text-foreground leading-tight">{value}</p>
                     {sub != null && (
                         <p className="text-xs text-muted-foreground mt-1">{sub}</p>
@@ -59,6 +147,25 @@ function StatCard({ icon: Icon, iconColor, label, value, sub, pct, trend }) {
                     </div>
                 )}
             </div>
+            
+            {/* Hover Tooltip */}
+            {hoverData && showTooltip && (
+                <div className="absolute z-10 bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-background border border-border rounded-lg shadow-lg whitespace-nowrap">
+                    <div className="text-xs space-y-1">
+                        <div className="flex items-center gap-2">
+                            <span className="text-emerald-500 font-semibold">Scope-in:</span>
+                            <span className="text-foreground">{hoverData.scope_in?.toLocaleString() || 0}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <span className="text-amber-500 font-semibold">Scope-out:</span>
+                            <span className="text-foreground">{hoverData.scope_out?.toLocaleString() || 0}</span>
+                        </div>
+                    </div>
+                    <div className="absolute top-full left-1/2 transform -translate-x-1/2 -mt-1">
+                        <div className="w-2 h-2 bg-background border-r border-b border-border rotate-45"></div>
+                    </div>
+                </div>
+            )}
         </div>
     )
 }
@@ -75,12 +182,9 @@ function lightBadgeBg(hex) {
 function CallFlowDiagram({ totals }) {
     if (!totals) return null
 
-    const pcts          = totals.percentages
-    const uncategorized = Math.max(0, totals.ai_handled_total - (totals.ai_solved_total + totals.ai_failed_total))
-    const uncatPct      = totals.ai_handled_total > 0
-        ? parseFloat(((uncategorized / totals.ai_handled_total) * 100).toFixed(1))
-        : 0
+    const pcts = totals.percentages
     const deflPct = parseFloat((100 - (pcts?.transferred_overall ?? 0)).toFixed(1))
+    const abandonedCalls = totals.call_abandoned_total || 0
 
     const W = 760, BW = 126, BH = 62, H_GAP = 10, V_GAP = 72
 
@@ -101,7 +205,7 @@ function CallFlowDiagram({ totals }) {
         { id: "ainit", cx: r3cx[1], y: y3, label: "AI Initiated",   value: totals.ai_initiated_transfer_total,   color: "#eab308" },
         { id: "solv",  cx: r3cx[2], y: y3, label: "AI Solved",      value: totals.ai_solved_total,               color: "#22c55e" },
         { id: "unres", cx: r3cx[3], y: y3, label: "AI Unresolved",  value: totals.ai_failed_total,               color: "#ef4444" },
-        { id: "uncat", cx: r3cx[4], y: y3, label: "Uncategorized",  value: uncategorized,                        color: "#64748b" },
+        { id: "aband", cx: r3cx[4], y: y3, label: "Abandoned",      value: abandonedCalls,                       color: "#64748b" },
     ]
 
     const edges = [
@@ -111,7 +215,7 @@ function CallFlowDiagram({ totals }) {
         { from: "xfer",  to: "ainit", label: `${pcts?.ai_initiated_transfer_overall ?? 0}%`   },
         { from: "defl",  to: "solv",  label: `${pcts?.ai_solved_of_ai_handled ?? 0}%`         },
         { from: "defl",  to: "unres", label: `${pcts?.ai_failed_of_ai_handled ?? 0}%`         },
-        { from: "defl",  to: "uncat", label: `${uncatPct}%`                                   },
+        { from: "total", to: "aband", label: `${pcts?.abandoned_overall ?? 0}%`               },
     ]
 
     const nm = Object.fromEntries(nodes.map((n) => [n.id, n]))
@@ -234,9 +338,6 @@ async function downloadExcel(aiSummaryData) {
         cell.border = { bottom: { style: "medium", color: { argb: argb(C.titleBg) } } }
     })
 
-    const uncategorized = totals
-        ? totals.ai_handled_total - (totals.ai_solved_total + totals.ai_failed_total)
-        : 0
     const aiDeflectedPct =
         totals?.total_calls > 0
             ? `${((totals.ai_handled_total / totals.total_calls) * 100).toFixed(1)}%`
@@ -250,7 +351,7 @@ async function downloadExcel(aiSummaryData) {
         ["AI Deflected",            totals?.ai_handled_total ?? 0,               `${aiDeflectedPct} of total`,                            C.purple],
         ["AI Solved",               totals?.ai_solved_total ?? 0,                "total calls fully resolved by AI",                      C.emerald],
         ["AI Unresolved",           totals?.ai_failed_total ?? 0,                `${pcts?.ai_failed_of_ai_handled ?? 0}% of AI deflected`, C.red],
-        ["Uncategorized Calls",     uncategorized,                               "customer hang-up / no response",                        C.slate],
+        ["Abandoned Calls",         totals?.call_abandoned_total ?? 0,           `${pcts?.abandoned_overall ?? 0}% of total`,             C.slate],
         ["AI Solved Rate",          `${pcts?.ai_solved_of_ai_handled ?? 0}%`,    "AI resolution success rate",                            C.cyan],
         ["AI Deflected Rate",       aiDeflectedPct,                              "AI deflected out of total calls",                       C.violet],
     ]
@@ -545,67 +646,65 @@ export default function AISummary({ onFetch, aiSummaryData, aiSummaryLoading, st
                                         iconColor="bg-amber-500/10 text-amber-500"
                                         label="Transferred to Human"
                                         value={totals.transferred_total.toLocaleString()}
-                                        pct={pcts?.transferred_overall}
-                                        trend={-(pcts?.transferred_overall ?? 0)}
-                                        sub={`${pcts?.transferred_overall ?? 0}% of total`}
+                                        sub={`${totals.transferred_percentage ?? 0}% of total`}
                                     />
                                     <StatCard
                                         icon={Users}
                                         iconColor="bg-orange-500/10 text-orange-500"
                                         label="User Requested Transfer"
                                         value={totals.user_requested_transfer_total.toLocaleString()}
-                                        sub={`${pcts?.user_requested_transfer_overall ?? 0}% of total`}
+                                        sub={`${totals.user_requested_transfer_percentage ?? 0}% of transferred`}
                                     />
                                     <StatCard
                                         icon={PhoneCall}
                                         iconColor="bg-rose-500/10 text-rose-500"
                                         label="AI Initiated Transfer"
                                         value={totals.ai_initiated_transfer_total.toLocaleString()}
-                                        sub={`${pcts?.ai_initiated_transfer_overall ?? 0}% of total`}
+                                        sub={`${totals.ai_initiated_transfer_percentage ?? 0}% of transferred`}
                                     />
                                     <StatCard
                                         icon={Brain}
                                         iconColor="bg-purple-500/10 text-purple-500"
-                                        label="AI Deflected"
-                                        value={totals.ai_handled_total.toLocaleString()}
-                                        sub="no human needed"
+                                        label="Deflected Calls"
+                                        value={totals.deflected_calls?.toLocaleString() || 0}
+                                        sub="AI attempted to handle"
+                                        hoverData={totals.deflected_calls_hover}
                                     />
                                     <StatCard
                                         icon={CheckCircle2}
                                         iconColor="bg-emerald-500/10 text-emerald-500"
-                                        label="AI Solved"
-                                        value={totals.ai_solved_total.toLocaleString()}
-                                        sub="total calls fully resolved by AI"
+                                        label="AI Resolved"
+                                        value={totals.ai_resolved?.toLocaleString() || 0}
+                                        sub="successfully resolved by AI"
+                                        hoverData={totals.ai_resolved_hover}
                                     />
                                     <StatCard
                                         icon={XCircle}
                                         iconColor="bg-red-500/10 text-red-500"
                                         label="AI Unresolved"
-                                        value={totals.ai_failed_total.toLocaleString()}
-                                        pct={pcts?.ai_failed_of_ai_handled}
-                                        trend={-(pcts?.ai_failed_of_ai_handled ?? 0)}
-                                        sub={`${pcts?.ai_failed_of_ai_handled ?? 0}% unresolved out of AI deflected`}
+                                        value={totals.ai_unresolved?.toLocaleString() || 0}
+                                        sub={`${totals.ai_unresolved_percentage ?? 0}% of deflected`}
                                     />
                                     <StatCard
-                                        icon={HelpCircle}
+                                        icon={PhoneCall}
                                         iconColor="bg-slate-500/10 text-slate-500"
-                                        label="Uncategorized Calls"
-                                        value={(totals.ai_handled_total - (totals.ai_solved_total + totals.ai_failed_total)).toLocaleString()}
-                                        sub="customer hang-up / no response"
+                                        label="Abandoned Calls"
+                                        value={(totals.call_abandoned_total || 0).toLocaleString()}
+                                        sub="customer abandoned call"
                                     />
                                     <StatCard
                                         icon={TrendingUp}
                                         iconColor="bg-cyan-500/10 text-cyan-500"
-                                        label="AI Solved (Percentage)"
-                                        value={`${pcts?.ai_solved_of_ai_handled ?? 0}%`}
+                                        label="AI Solved Percentage"
+                                        value={`${totals.ai_solved_percentage ?? 0}%`}
                                         sub="AI resolution success rate"
                                     />
                                     <StatCard
                                         icon={BarChart2}
                                         iconColor="bg-violet-500/10 text-violet-500"
-                                        label="AI Deflected (Percentage)"
-                                        value={`${totals.total_calls > 0 ? ((totals.ai_handled_total / totals.total_calls) * 100).toFixed(1) : 0}%`}
-                                        sub="AI deflected calls out of total"
+                                        label="AI Deflected Percentage"
+                                        value={`${totals.ai_deflected_percentage ?? 0}%`}
+                                        sub="deflection rate of total"
                                     />
                                 </div>
                             </div>
@@ -619,43 +718,14 @@ export default function AISummary({ onFetch, aiSummaryData, aiSummaryLoading, st
                                     <table className="w-full text-sm">
                                         <thead className="bg-muted/50">
                                             <tr>
-                                                {["Date", "Total", "Transferred", "User Requested", "AI Initiated", "AI Deflected", "AI Solved", "AI Unresolved", "Solved %"].map((h) => (
+                                                {["Date", "Total", "Transferred", "User Requested", "AI Initiated", "Deflected ⓘ", "AI Resolved ⓘ", "AI Unresolved", "Abandoned"].map((h) => (
                                                     <th key={h} className="text-left py-3 px-4 text-xs font-semibold text-muted-foreground whitespace-nowrap">{h}</th>
                                                 ))}
                                             </tr>
                                         </thead>
                                         <tbody>
                                             {aiSummaryData.daily.map((day, i) => (
-                                                <tr key={i} className="border-t hover:bg-muted/20 transition-colors">
-                                                    <td className="py-3 px-4 font-medium text-foreground whitespace-nowrap">{day.date}</td>
-                                                    <td className="py-3 px-4 text-foreground">{day.total_calls}</td>
-                                                    <td className="py-3 px-4">
-                                                        <span className="text-amber-500 font-medium">{day.transferred_total}</span>
-                                                        <span className="text-xs text-muted-foreground ml-1">({day.percentages.transferred_overall}%)</span>
-                                                    </td>
-                                                    <td className="py-3 px-4">
-                                                        <span className="text-orange-500 font-medium">{day.user_requested_transfer_total}</span>
-                                                        <span className="text-xs text-muted-foreground ml-1">({day.percentages.user_requested_transfer_overall}%)</span>
-                                                    </td>
-                                                    <td className="py-3 px-4">
-                                                        <span className="text-rose-500 font-medium">{day.ai_initiated_transfer_total}</span>
-                                                        <span className="text-xs text-muted-foreground ml-1">({day.percentages.ai_initiated_transfer_overall}%)</span>
-                                                    </td>
-                                                    <td className="py-3 px-4">
-                                                        <span className="text-purple-500 font-medium">{day.ai_handled_total}</span>
-                                                    </td>
-                                                    <td className="py-3 px-4">
-                                                        <span className="text-emerald-500 font-medium">{day.ai_solved_total}</span>
-                                                    </td>
-                                                    <td className="py-3 px-4">
-                                                        <span className="text-red-500 font-medium">{day.ai_failed_total}</span>
-                                                    </td>
-                                                    <td className="py-3 px-4">
-                                                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold ${day.percentages.ai_solved_of_ai_handled >= 50 ? "bg-emerald-500/10 text-emerald-500" : "bg-amber-500/10 text-amber-500"}`}>
-                                                            {day.percentages.ai_solved_of_ai_handled}%
-                                                        </span>
-                                                    </td>
-                                                </tr>
+                                                <DailyRow key={i} day={day} index={i} />
                                             ))}
                                         </tbody>
                                     </table>
