@@ -121,11 +121,11 @@ function StatCard({ icon: Icon, iconColor, label, value, sub, pct, trend, hoverD
     
     return (
         <div 
-            className="relative overflow-hidden rounded-2xl border border-border/60 bg-gradient-to-br from-background via-background to-muted/70 shadow-sm hover:shadow-lg transition-all duration-200"
+            className="relative rounded-2xl border border-border/60 bg-gradient-to-br from-background via-background to-muted/70 shadow-sm hover:shadow-lg transition-all duration-200"
             onMouseEnter={() => hoverData && setShowTooltip(true)}
             onMouseLeave={() => hoverData && setShowTooltip(false)}
         >
-            <div className="pointer-events-none absolute inset-0 bg-gradient-to-tr from-white/10 via-transparent to-primary/10 opacity-80" />
+            <div className="pointer-events-none absolute inset-0 bg-gradient-to-tr from-white/10 via-transparent to-primary/10 opacity-80 rounded-2xl overflow-hidden" />
             <div className="relative flex items-start gap-3 p-4">
                 <div className={`mt-0.5 w-9 h-9 rounded-xl flex items-center justify-center shadow-sm bg-white/70 backdrop-blur-sm ${iconColor}`}>
                     <Icon className="w-4 h-4" />
