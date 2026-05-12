@@ -634,78 +634,89 @@ export default function AISummary({ onFetch, aiSummaryData, aiSummaryLoading, st
                             <div>
                                 <p className="text-sm font-semibold text-foreground mb-3">Call Handling Breakdown</p>
                                 <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-                                    <StatCard
-                                        icon={Phone}
-                                        iconColor="bg-blue-500/10 text-blue-500"
-                                        label="Total Calls"
-                                        value={totals.total_calls.toLocaleString()}
-                                        sub="in selected range"
-                                    />
-                                    <StatCard
-                                        icon={PhoneForwarded}
-                                        iconColor="bg-amber-500/10 text-amber-500"
-                                        label="Transferred to Human"
-                                        value={totals.transferred_total.toLocaleString()}
-                                        sub={`${totals.transferred_percentage ?? 0}% of total`}
-                                    />
-                                    <StatCard
-                                        icon={Users}
-                                        iconColor="bg-orange-500/10 text-orange-500"
-                                        label="User Requested Transfer"
-                                        value={totals.user_requested_transfer_total.toLocaleString()}
-                                        sub={`${totals.user_requested_transfer_percentage ?? 0}% of transferred`}
-                                    />
-                                    <StatCard
-                                        icon={PhoneCall}
-                                        iconColor="bg-rose-500/10 text-rose-500"
-                                        label="AI Initiated Transfer"
-                                        value={totals.ai_initiated_transfer_total.toLocaleString()}
-                                        sub={`${totals.ai_initiated_transfer_percentage ?? 0}% of transferred`}
-                                    />
-                                    <StatCard
-                                        icon={Brain}
-                                        iconColor="bg-purple-500/10 text-purple-500"
-                                        label="Deflected Calls"
-                                        value={totals.deflected_calls?.toLocaleString() || 0}
-                                        sub="AI attempted to handle"
-                                        hoverData={totals.deflected_calls_hover}
-                                    />
-                                    <StatCard
-                                        icon={CheckCircle2}
-                                        iconColor="bg-emerald-500/10 text-emerald-500"
-                                        label="AI Resolved"
-                                        value={totals.ai_resolved?.toLocaleString() || 0}
-                                        sub="successfully resolved by AI"
-                                        hoverData={totals.ai_resolved_hover}
-                                    />
-                                    <StatCard
-                                        icon={XCircle}
-                                        iconColor="bg-red-500/10 text-red-500"
-                                        label="AI Unresolved"
-                                        value={totals.ai_unresolved?.toLocaleString() || 0}
-                                        sub={`${totals.ai_unresolved_percentage ?? 0}% of deflected`}
-                                    />
-                                    <StatCard
-                                        icon={PhoneCall}
-                                        iconColor="bg-slate-500/10 text-slate-500"
-                                        label="Abandoned Calls"
-                                        value={(totals.call_abandoned_total || 0).toLocaleString()}
-                                        sub="customer abandoned call"
-                                    />
-                                    <StatCard
-                                        icon={TrendingUp}
-                                        iconColor="bg-cyan-500/10 text-cyan-500"
-                                        label="AI Solved Percentage"
-                                        value={`${totals.ai_solved_percentage ?? 0}%`}
-                                        sub="AI resolution success rate"
-                                    />
-                                    <StatCard
-                                        icon={BarChart2}
-                                        iconColor="bg-violet-500/10 text-violet-500"
-                                        label="AI Deflected Percentage"
-                                        value={`${totals.ai_deflected_percentage ?? 0}%`}
-                                        sub="deflection rate of total"
-                                    />
+                                    {(() => {
+                                        // Calculate deflected calls as: total_calls - transferred_total
+                                        const calculatedDeflected = totals.total_calls - totals.transferred_total
+                                        const deflectedPercentage = totals.total_calls > 0 
+                                            ? ((calculatedDeflected / totals.total_calls) * 100).toFixed(1)
+                                            : 0
+                                        
+                                        return (
+                                            <>
+                                                <StatCard
+                                                    icon={Phone}
+                                                    iconColor="bg-blue-500/10 text-blue-500"
+                                                    label="Total Calls"
+                                                    value={totals.total_calls.toLocaleString()}
+                                                    sub="in selected range"
+                                                />
+                                                <StatCard
+                                                    icon={PhoneForwarded}
+                                                    iconColor="bg-amber-500/10 text-amber-500"
+                                                    label="Transferred to Human"
+                                                    value={totals.transferred_total.toLocaleString()}
+                                                    sub={`${totals.transferred_percentage ?? 0}% of total`}
+                                                />
+                                                <StatCard
+                                                    icon={Users}
+                                                    iconColor="bg-orange-500/10 text-orange-500"
+                                                    label="User Requested Transfer"
+                                                    value={totals.user_requested_transfer_total.toLocaleString()}
+                                                    sub={`${totals.user_requested_transfer_percentage ?? 0}% of transferred`}
+                                                />
+                                                <StatCard
+                                                    icon={PhoneCall}
+                                                    iconColor="bg-rose-500/10 text-rose-500"
+                                                    label="AI Initiated Transfer"
+                                                    value={totals.ai_initiated_transfer_total.toLocaleString()}
+                                                    sub={`${totals.ai_initiated_transfer_percentage ?? 0}% of transferred`}
+                                                />
+                                                <StatCard
+                                                    icon={Brain}
+                                                    iconColor="bg-purple-500/10 text-purple-500"
+                                                    label="Deflected Calls"
+                                                    value={calculatedDeflected.toLocaleString()}
+                                                    sub={`${deflectedPercentage}% of total`}
+                                                />
+                                                <StatCard
+                                                    icon={CheckCircle2}
+                                                    iconColor="bg-emerald-500/10 text-emerald-500"
+                                                    label="AI Resolved"
+                                                    value={totals.ai_resolved?.toLocaleString() || 0}
+                                                    sub="successfully resolved by AI"
+                                                    hoverData={totals.ai_resolved_hover}
+                                                />
+                                                <StatCard
+                                                    icon={XCircle}
+                                                    iconColor="bg-red-500/10 text-red-500"
+                                                    label="AI Unresolved"
+                                                    value={totals.ai_unresolved?.toLocaleString() || 0}
+                                                    sub={`${totals.ai_unresolved_percentage ?? 0}% of deflected`}
+                                                />
+                                                <StatCard
+                                                    icon={PhoneCall}
+                                                    iconColor="bg-slate-500/10 text-slate-500"
+                                                    label="Abandoned Calls"
+                                                    value={(totals.call_abandoned_total || 0).toLocaleString()}
+                                                    sub="customer abandoned call"
+                                                />
+                                                <StatCard
+                                                    icon={TrendingUp}
+                                                    iconColor="bg-cyan-500/10 text-cyan-500"
+                                                    label="AI Solved Percentage"
+                                                    value={`${totals.ai_solved_percentage ?? 0}%`}
+                                                    sub="AI resolution success rate"
+                                                />
+                                                <StatCard
+                                                    icon={BarChart2}
+                                                    iconColor="bg-violet-500/10 text-violet-500"
+                                                    label="AI Deflected Percentage"
+                                                    value={`${deflectedPercentage}%`}
+                                                    sub="deflection rate of total"
+                                                />
+                                            </>
+                                        )
+                                    })()}
                                 </div>
                             </div>
                         )}
